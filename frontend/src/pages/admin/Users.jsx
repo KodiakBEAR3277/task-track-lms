@@ -9,6 +9,10 @@ import {
   TableHead,
   TableRow,
   styled,
+  IconButton,
+  Menu,
+  MenuItem,
+  Chip,
   Drawer,
   List,
   ListItem,
@@ -16,6 +20,7 @@ import {
   ListItemText,
   Collapse,
 } from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import HomeIcon from '@mui/icons-material/Home';
@@ -64,30 +69,44 @@ const StyledTableRow = styled(TableRow)({
   },
 });
 
-function Teachers() {
+const RoleChip = styled(Chip)(({ role }) => ({
+  backgroundColor: role === 'teacher' ? '#FFC600' : '#666',
+  color: role === 'teacher' ? '#000' : '#fff',
+}));
+
+function Users() {
   const navigate = useNavigate();
-  const [folderOpen, setFolderOpen] = useState(true);
-  
-  // Mock teachers data
-  const [teachers] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john@example.com',
-      classes: 3,
-      students: 90,
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      classes: 2,
-      students: 60,
-    },
+  const [folderOpen, setFolderOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  // Mock users data (replace with API call later)
+  const [users, setUsers] = useState([
+    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'teacher' },
+    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'student' },
+    { id: 3, name: 'Bob Wilson', email: 'bob@example.com', role: 'student' },
   ]);
 
   const handleFolderClick = () => {
     setFolderOpen(!folderOpen);
+  };
+
+  const handleMenuOpen = (event, user) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedUser(user);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedUser(null);
+  };
+
+  const handleRoleChange = (newRole) => {
+    // Update the user's role in the state (replace with API call later)
+    setUsers(users.map(user => 
+      user.id === selectedUser.id ? { ...user, role: newRole } : user
+    ));
+    handleMenuClose();
   };
 
   return (
@@ -108,9 +127,10 @@ function Teachers() {
           {/* Users */}
           <ListItem 
             button
+            selected
             onClick={() => navigate('/admin/users')}
           >
-            <ListItemIcon sx={{ color: 'white' }}>
+            <ListItemIcon sx={{ color: '#FFC600' }}>
               <PeopleIcon />
             </ListItemIcon>
             <ListItemText primary="Users" />
@@ -130,10 +150,9 @@ function Teachers() {
             <List component="div" disablePadding>
               <NestedListItem 
                 button
-                selected
                 onClick={() => navigate('/admin/teachers')}
               >
-                <ListItemIcon sx={{ color: '#FFC600' }}>
+                <ListItemIcon sx={{ color: 'white' }}>
                   <SchoolIcon />
                 </ListItemIcon>
                 <ListItemText primary="Teachers" />
@@ -154,7 +173,7 @@ function Teachers() {
 
       <MainContent>
         <Typography variant="h4" sx={{ color: 'white', mb: 4 }}>
-          Teachers
+          Users
         </Typography>
 
         <TableContainer component={Paper} sx={{ backgroundColor: '#222222' }}>
@@ -163,25 +182,63 @@ function Teachers() {
               <TableRow>
                 <StyledTableCell>Name</StyledTableCell>
                 <StyledTableCell>Email</StyledTableCell>
-                <StyledTableCell>Classes</StyledTableCell>
-                <StyledTableCell>Total Students</StyledTableCell>
+                <StyledTableCell>Role</StyledTableCell>
+                <StyledTableCell align="right">Actions</StyledTableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {teachers.map((teacher) => (
-                <StyledTableRow key={teacher.id}>
-                  <StyledTableCell>{teacher.name}</StyledTableCell>
-                  <StyledTableCell>{teacher.email}</StyledTableCell>
-                  <StyledTableCell>{teacher.classes}</StyledTableCell>
-                  <StyledTableCell>{teacher.students}</StyledTableCell>
+              {users.map((user) => (
+                <StyledTableRow key={user.id}>
+                  <StyledTableCell>{user.name}</StyledTableCell>
+                  <StyledTableCell>{user.email}</StyledTableCell>
+                  <StyledTableCell>
+                    <RoleChip 
+                      label={user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      role={user.role}
+                      size="small"
+                    />
+                  </StyledTableCell>
+                  <StyledTableCell align="right">
+                    <IconButton
+                      onClick={(e) => handleMenuOpen(e, user)}
+                      sx={{ color: 'white' }}
+                    >
+                      <MoreVertIcon />
+                    </IconButton>
+                  </StyledTableCell>
                 </StyledTableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
+
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+          PaperProps={{
+            sx: {
+              backgroundColor: '#333',
+              color: 'white',
+            }
+          }}
+        >
+          <MenuItem 
+            onClick={() => handleRoleChange('student')}
+            sx={{ color: selectedUser?.role === 'student' ? '#FFC600' : 'white' }}
+          >
+            Set as Student
+          </MenuItem>
+          <MenuItem 
+            onClick={() => handleRoleChange('teacher')}
+            sx={{ color: selectedUser?.role === 'teacher' ? '#FFC600' : 'white' }}
+          >
+            Set as Teacher
+          </MenuItem>
+        </Menu>
       </MainContent>
     </Box>
   );
 }
 
-export default Teachers; 
+export default Users;

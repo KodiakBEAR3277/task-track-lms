@@ -19,7 +19,7 @@ const PageContainer = styled('div')({
 const Header = styled('header')({
   width: '100%',
   backgroundColor: '#222222',
-  padding: '1rem 5%',
+  padding: '1rem 2rem',
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -116,6 +116,21 @@ const FeatureCard = styled('div')({
   justifyContent: 'center',
 });
 
+const OutlinedButton = styled(Button)({
+  border: '2px solid #FFC600',
+  color: '#FFC600',
+  padding: 'calc(0.75rem - 2px) calc(2rem - 2px)',
+  backgroundColor: 'transparent',
+  fontSize: '1.125rem',
+  fontWeight: 600,
+  boxSizing: 'border-box',
+  '&:hover': {
+    backgroundColor: 'rgba(255, 198, 0, 0.1)',
+    border: '2px solid #FFE333',
+    color: '#FFE333',
+  }
+});
+
 function Landing() {
   const navigate = useNavigate();
 
@@ -124,13 +139,12 @@ function Landing() {
       <Header>
         <Logo>Task Track</Logo>
         <div>
-          <StyledButton
-            variant="contained"
+          <OutlinedButton
             onClick={() => navigate('/login')}
             sx={{ marginRight: '1rem' }}
           >
             Login
-          </StyledButton>
+          </OutlinedButton>
           <StyledButton
             variant="contained"
             onClick={() => navigate('/signup')}

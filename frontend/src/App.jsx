@@ -9,8 +9,8 @@ import Signup from './pages/public/Signup';
 
 // Student Pages
 import StudentDashboard from './pages/student/Dashboard';
-import StudentClasses from './pages/student/Classes';
-import StudentActivities from './pages/student/Activities';
+import StudentCalendar from './pages/student/Calendar';
+import ClassView from './pages/student/ClassView';
 
 // Teacher Pages
 import TeacherDashboard from './pages/teacher/Dashboard';
@@ -19,8 +19,10 @@ import TeacherSchedule from './pages/teacher/Schedule';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
-import AdminTeachers from './pages/admin/Teachers';
-import AdminStudents from './pages/admin/Students';
+import Users from './pages/admin/Users';
+import Classes from './pages/admin/Classes';
+import Teachers from './pages/admin/Teachers';
+import Students from './pages/admin/Students';
 
 // Create a theme instance
 const theme = createTheme({
@@ -52,18 +54,20 @@ function App() {
 
           {/* Student Routes */}
           <Route path="/student/dashboard" element={<StudentDashboard />} />
-          <Route path="/student/classes" element={<StudentClasses />} />
-          <Route path="/student/activities" element={<StudentActivities />} />
-
+          <Route path="/student/calendar" element={<StudentCalendar />} />
+          <Route path="/student/class/:id" element={<ClassView />} />
+          
           {/* Teacher Routes */}
           <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-          <Route path="/teacher/classes" element={<TeacherClasses />} />
           <Route path="/teacher/schedule" element={<TeacherSchedule />} />
+          <Route path="/teacher/classes/:id" element={<TeacherClasses />} />
 
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/teachers" element={<AdminTeachers />} />
-          <Route path="/admin/students" element={<AdminStudents />} />
+          <Route path="/admin/users" element={<Users />} />
+          <Route path="/admin/teachers" element={<Teachers />} />
+          <Route path="/admin/students" element={<Students />} />
+          <Route path="/admin/classes" element={<Classes />} />
         </Routes>
       </Router>
     </ThemeProvider>

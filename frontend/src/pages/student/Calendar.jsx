@@ -5,10 +5,8 @@ import { Button, Grid } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import dayjs from 'dayjs';
-import isBetween from 'dayjs/plugin/isBetween';
 
-dayjs.extend(isBetween);
-
+// Import the drawer components
 const drawerWidth = 240;
 
 const StyledDrawer = styled(Drawer)({
@@ -36,6 +34,22 @@ const MainContent = styled(Box)({
   }
 });
 
+const SidebarItem = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  padding: '12px 24px',
+  color: 'white',
+  cursor: 'pointer',
+  '&:hover': {
+    backgroundColor: 'rgba(255, 198, 0, 0.1)',
+  },
+  '& .icon': {
+    marginRight: '12px',
+    color: '#FFC600',
+  },
+});
+
+// Calendar styled components
 const CalendarGrid = styled(Box)({
   backgroundColor: '#222222',
   borderRadius: '8px',
@@ -63,84 +77,43 @@ const CalendarGrid = styled(Box)({
   }
 });
 
-const ScheduleEvent = styled(Box)(({ type }) => ({
-  backgroundColor: type === 'class' ? 'rgba(255, 198, 0, 0.2)' : 'rgba(82, 196, 26, 0.2)',
-  border: `1px solid ${type === 'class' ? '#FFC600' : '#52c41a'}`,
+const CalendarEvent = styled(Box)({
+  backgroundColor: 'rgba(255, 198, 0, 0.2)',
+  border: '1px solid #FFC600',
   borderRadius: '4px',
   padding: '4px 8px',
   fontSize: '0.75rem',
-  color: type === 'class' ? '#FFC600' : '#52c41a',
+  color: '#FFC600',
   marginBottom: '4px',
   cursor: 'pointer',
   whiteSpace: 'nowrap',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   '&:hover': {
-    backgroundColor: type === 'class' ? 'rgba(255, 198, 0, 0.3)' : 'rgba(82, 196, 26, 0.3)',
-  }
-}));
-
-const TimelineContainer = styled(Box)({
-  marginTop: '2rem',
-  padding: '1.5rem',
-  backgroundColor: '#222222',
-  borderRadius: '8px',
-  '& .timeline-header': {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: '1.5rem',
+    backgroundColor: 'rgba(255, 198, 0, 0.3)',
   }
 });
 
-const TimelineItem = styled(Box)({
-  position: 'relative',
-  padding: '1rem 1.5rem',
-  backgroundColor: 'rgba(255, 198, 0, 0.1)',
-  borderLeft: '3px solid #FFC600',
-  marginBottom: '1rem',
-  borderRadius: '0 8px 8px 0',
-  transition: 'transform 0.2s',
-  '&:hover': {
-    transform: 'translateX(5px)',
-    backgroundColor: 'rgba(255, 198, 0, 0.15)',
-  }
-});
-
-function TeacherSchedule() {
+function StudentCalendar() {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(dayjs());
 
-  // Mock schedule data
-  const scheduleEvents = [
+  // Mock events data
+  const events = [
     {
       id: 1,
-      title: 'IT 212 - Object-Oriented Programming',
+      title: 'Module 2 - Java Operators, Strings, Math class',
       startDate: '2024-09-02',
       endDate: '2024-09-13',
-      type: 'class',
-      section: '2A-1',
-      room: 'EB 309',
-      time: '9:30 AM - 12:00 NN'
+      type: 'module'
     },
     {
       id: 2,
-      title: 'IT 211 - Data Structures',
+      title: 'L1. Typecasting and Operators',
       startDate: '2024-09-13',
       endDate: '2024-09-13',
-      type: 'class',
-      section: '2B-1',
-      room: 'EB 310',
-      time: '1:00 PM - 3:30 PM'
+      type: 'lesson'
     },
-    {
-      id: 3,
-      title: 'Department Meeting',
-      startDate: '2024-09-15',
-      endDate: '2024-09-15',
-      type: 'meeting',
-      room: 'Conference Room',
-      time: '10:00 AM - 11:00 AM'
-    }
   ];
 
   const generateCalendarDays = () => {
@@ -158,7 +131,7 @@ function TeacherSchedule() {
   };
 
   const getEventsForDay = (date) => {
-    return scheduleEvents.filter(event => {
+    return events.filter(event => {
       const start = dayjs(event.startDate);
       const end = dayjs(event.endDate);
       return date.isBetween(start, end, 'day', '[]');
@@ -171,7 +144,7 @@ function TeacherSchedule() {
         <List sx={{ marginTop: '2rem' }}>
           <ListItem 
             button 
-            onClick={() => navigate('/teacher/dashboard')}
+            onClick={() => navigate('/student/dashboard')}
           >
             <ListItemIcon sx={{ color: 'white' }}>
               <HomeIcon />
@@ -181,18 +154,19 @@ function TeacherSchedule() {
           <ListItem 
             button
             selected
-            onClick={() => navigate('/teacher/schedule')}
+            onClick={() => navigate('/student/calendar')}
           >
             <ListItemIcon sx={{ color: '#FFC600' }}>
               <CalendarMonthIcon />
             </ListItemIcon>
-            <ListItemText primary="Schedule" />
+            <ListItemText primary="Calendar" />
           </ListItem>
         </List>
       </StyledDrawer>
 
+      {/* Main Content */}
       <MainContent>
-        <Typography variant="h4" sx={{ color: 'white', mb: 4 }}>Schedule</Typography>
+        <Typography variant="h4" sx={{ color: 'white', mb: 4 }}>Calendar</Typography>
         
         <CalendarGrid>
           <Box className="calendar-header">
@@ -243,56 +217,17 @@ function TeacherSchedule() {
                   {day.format('D')}
                 </Typography>
                 {getEventsForDay(day).map(event => (
-                  <ScheduleEvent key={event.id} type={event.type}>
+                  <CalendarEvent key={event.id}>
                     {event.title}
-                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                      {event.time}
-                    </Typography>
-                  </ScheduleEvent>
+                  </CalendarEvent>
                 ))}
               </Box>
             ))}
           </Box>
         </CalendarGrid>
-
-        <TimelineContainer>
-          <Box className="timeline-header">
-            <Typography variant="h6" sx={{ color: '#FFC600' }}>
-              Schedule Timeline
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#999' }}>
-              {currentDate.format('MMMM YYYY')}
-            </Typography>
-          </Box>
-          {scheduleEvents.map((event) => (
-            <TimelineItem key={event.id}>
-              <Typography variant="subtitle1" sx={{ color: '#FFC600', mb: 1 }}>
-                {event.title}
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#999' }}>
-                {event.time} | {event.room}
-              </Typography>
-              {event.section && (
-                <Typography variant="body2" sx={{ color: '#999' }}>
-                  Section: {event.section}
-                </Typography>
-              )}
-              <Typography variant="caption" sx={{ 
-                color: '#666',
-                display: 'inline-block',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                marginTop: '8px'
-              }}>
-                {event.type === 'class' ? 'Class Schedule' : 'Meeting'}
-              </Typography>
-            </TimelineItem>
-          ))}
-        </TimelineContainer>
       </MainContent>
     </Box>
   );
 }
 
-export default TeacherSchedule; 
+export default StudentCalendar; 
