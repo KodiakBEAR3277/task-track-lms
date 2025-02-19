@@ -168,7 +168,7 @@ function TeacherDashboard() {
             <ListItemIcon sx={{ color: 'white' }}>
               <CalendarMonthIcon />
             </ListItemIcon>
-            <ListItemText primary="Calendar" />
+            <ListItemText primary="Schedule" />
           </ListItem>
         </List>
       </StyledDrawer>

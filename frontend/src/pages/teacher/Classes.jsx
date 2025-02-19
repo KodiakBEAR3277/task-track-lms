@@ -330,9 +330,9 @@ function TeacherClasses() {
           </ResourceOption>
           <ResourceOption
             startIcon={<AssignmentIcon />}
-            onClick={() => handleResourceTypeSelect('assignment')}
+            onClick={() => handleResourceTypeSelect('task')}
           >
-            Assignment
+            Task
           </ResourceOption>
           <ResourceOption
             startIcon={<QuizIcon />}
