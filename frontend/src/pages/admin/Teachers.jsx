@@ -49,7 +49,7 @@ const MainContent = styled(Box)({
 const NestedListItem = styled(ListItem)({
   paddingLeft: '32px',
   '&:hover': {
-    backgroundColor: 'rgba(255, 198, 0, 0.1)',
+    backgroundColor: '#333333',
   },
 });
 
@@ -92,7 +92,7 @@ function Teachers() {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <StyledDrawer variant="permanent">
+      <StyledDrawer variant="permanent" anchor="left">
         <List sx={{ marginTop: '2rem' }}>
           {/* Home */}
           <ListItem 
@@ -127,23 +127,29 @@ function Teachers() {
 
           {/* Folder dropdown content */}
           <Collapse in={folderOpen} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
+            <List>
               <NestedListItem 
-                button
-                selected
+                button 
                 onClick={() => navigate('/admin/teachers')}
+                sx={{ 
+                  backgroundColor: '#333333',
+                  borderLeft: '4px solid #FFC600'
+                }}
               >
-                <ListItemIcon sx={{ color: '#FFC600' }}>
-                  <SchoolIcon />
+                <ListItemIcon>
+                  <PersonIcon sx={{ color: '#FFC600' }} />
                 </ListItemIcon>
-                <ListItemText primary="Teachers" />
+                <ListItemText primary="Teachers" sx={{ color: '#FFC600' }} />
               </NestedListItem>
-              <NestedListItem 
-                button
-                onClick={() => navigate('/admin/students')}
-              >
-                <ListItemIcon sx={{ color: 'white' }}>
-                  <PersonIcon />
+              <NestedListItem button onClick={() => navigate('/admin/classes')}>
+                <ListItemIcon>
+                  <SchoolIcon sx={{ color: 'white' }} />
+                </ListItemIcon>
+                <ListItemText primary="Classes" />
+              </NestedListItem>
+              <NestedListItem button onClick={() => navigate('/admin/students')}>
+                <ListItemIcon>
+                  <PeopleIcon sx={{ color: 'white' }} />
                 </ListItemIcon>
                 <ListItemText primary="Students" />
               </NestedListItem>
@@ -153,10 +159,9 @@ function Teachers() {
       </StyledDrawer>
 
       <MainContent>
-        <Typography variant="h4" sx={{ color: 'white', mb: 4 }}>
+        <Typography variant="h4" sx={{ color: 'white', mb: 3 }}>
           Teachers
         </Typography>
-
         <TableContainer component={Paper} sx={{ backgroundColor: '#222222' }}>
           <Table>
             <TableHead>

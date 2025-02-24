@@ -49,7 +49,7 @@ const MainContent = styled(Box)({
 const NestedListItem = styled(ListItem)({
   paddingLeft: '32px',
   '&:hover': {
-    backgroundColor: 'rgba(255, 198, 0, 0.1)',
+    backgroundColor: '#333333',
   },
 });
 
@@ -66,7 +66,7 @@ const StyledTableRow = styled(TableRow)({
 
 function Students() {
   const navigate = useNavigate();
-  const [folderOpen, setFolderOpen] = useState(true);
+  const [openFolder, setOpenFolder] = useState(true);
 
   // Mock students data
   const [students] = useState([
@@ -85,7 +85,7 @@ function Students() {
   ]);
 
   const handleFolderClick = () => {
-    setFolderOpen(!folderOpen);
+    setOpenFolder(!openFolder);
   };
 
   return (
@@ -120,30 +120,36 @@ function Students() {
               <FolderIcon />
             </ListItemIcon>
             <ListItemText primary="Folder" />
-            {folderOpen ? <ExpandLess /> : <ExpandMore />}
+            {openFolder ? <ExpandLess /> : <ExpandMore />}
           </ListItem>
 
           {/* Folder dropdown content */}
-          <Collapse in={folderOpen} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
-              <NestedListItem 
-                button
-                onClick={() => navigate('/admin/teachers')}
-              >
-                <ListItemIcon sx={{ color: 'white' }}>
-                  <SchoolIcon />
+          <Collapse in={openFolder} timeout="auto" unmountOnExit>
+            <List>
+              <NestedListItem button onClick={() => navigate('/admin/teachers')}>
+                <ListItemIcon>
+                  <PersonIcon sx={{ color: 'white' }} />
                 </ListItemIcon>
                 <ListItemText primary="Teachers" />
               </NestedListItem>
-              <NestedListItem 
-                button
-                selected
-                onClick={() => navigate('/admin/students')}
-              >
-                <ListItemIcon sx={{ color: '#FFC600' }}>
-                  <PersonIcon />
+              <NestedListItem button onClick={() => navigate('/admin/classes')}>
+                <ListItemIcon>
+                  <SchoolIcon sx={{ color: 'white' }} />
                 </ListItemIcon>
-                <ListItemText primary="Students" />
+                <ListItemText primary="Classes" />
+              </NestedListItem>
+              <NestedListItem 
+                button 
+                onClick={() => navigate('/admin/students')}
+                sx={{ 
+                  backgroundColor: '#333333',
+                  borderLeft: '4px solid #FFC600'
+                }}
+              >
+                <ListItemIcon>
+                  <PeopleIcon sx={{ color: '#FFC600' }} />
+                </ListItemIcon>
+                <ListItemText primary="Students" sx={{ color: '#FFC600' }} />
               </NestedListItem>
             </List>
           </Collapse>
@@ -151,7 +157,7 @@ function Students() {
       </StyledDrawer>
 
       <MainContent>
-        <Typography variant="h4" sx={{ color: 'white', mb: 4 }}>
+        <Typography variant="h4" sx={{ color: 'white', mb: 3 }}>
           Students
         </Typography>
 

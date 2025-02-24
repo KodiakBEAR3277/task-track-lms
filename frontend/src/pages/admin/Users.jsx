@@ -54,7 +54,7 @@ const MainContent = styled(Box)({
 const NestedListItem = styled(ListItem)({
   paddingLeft: '32px',
   '&:hover': {
-    backgroundColor: 'rgba(255, 198, 0, 0.1)',
+    backgroundColor: '#333333',
   },
 });
 
@@ -147,22 +147,22 @@ function Users() {
 
           {/* Folder dropdown content */}
           <Collapse in={folderOpen} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
-              <NestedListItem 
-                button
-                onClick={() => navigate('/admin/teachers')}
-              >
-                <ListItemIcon sx={{ color: 'white' }}>
-                  <SchoolIcon />
+            <List>
+              <NestedListItem button onClick={() => navigate('/admin/teachers')}>
+                <ListItemIcon>
+                  <PersonIcon sx={{ color: 'white' }} />
                 </ListItemIcon>
                 <ListItemText primary="Teachers" />
               </NestedListItem>
-              <NestedListItem 
-                button
-                onClick={() => navigate('/admin/students')}
-              >
-                <ListItemIcon sx={{ color: 'white' }}>
-                  <PersonIcon />
+              <NestedListItem button onClick={() => navigate('/admin/classes')}>
+                <ListItemIcon>
+                  <SchoolIcon sx={{ color: 'white' }} />
+                </ListItemIcon>
+                <ListItemText primary="Classes" />
+              </NestedListItem>
+              <NestedListItem button onClick={() => navigate('/admin/students')}>
+                <ListItemIcon>
+                  <PeopleIcon sx={{ color: 'white' }} />
                 </ListItemIcon>
                 <ListItemText primary="Students" />
               </NestedListItem>
