@@ -21,6 +21,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import CreateClassModal from '../../components/CreateClassModal';
 
 const drawerWidth = 240;
 
@@ -91,6 +92,7 @@ function TeacherDashboard() {
   const [contextMenu, setContextMenu] = useState(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
+  const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
   
   const [classes, setClasses] = useState([
     {
@@ -181,6 +183,23 @@ function TeacherDashboard() {
             </Typography>
           </Box>
 
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setIsCreateClassOpen(true)}
+              sx={{
+                backgroundColor: '#FFC600',
+                color: 'black',
+                '&:hover': {
+                  backgroundColor: '#FFD700',
+                },
+              }}
+            >
+              Create Class
+            </Button>
+          </Box>
+
           <MuiGrid container spacing={3}>
             {classes.map((class_) => (
               <MuiGrid item xs={12} sm={6} md={4} key={class_.id}>
@@ -211,13 +230,6 @@ function TeacherDashboard() {
                 </ClassCard>
               </MuiGrid>
             ))}
-            
-            <MuiGrid item xs={12} sm={6} md={4}>
-              <CreateClassButton onClick={handleCreateClass}>
-                <AddIcon sx={{ fontSize: 40 }} />
-                <Typography variant="h6">Create Class</Typography>
-              </CreateClassButton>
-            </MuiGrid>
           </MuiGrid>
         </MuiContainer>
       </MainContent>
@@ -260,6 +272,12 @@ function TeacherDashboard() {
           Delete Class
         </MenuItem>
       </Menu>
+
+      {/* Create Class Modal */}
+      <CreateClassModal
+        open={isCreateClassOpen}
+        onClose={() => setIsCreateClassOpen(false)}
+      />
     </Box>
   );
 }

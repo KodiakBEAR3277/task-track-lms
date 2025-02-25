@@ -32,6 +32,7 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import QuizIcon from '@mui/icons-material/Quiz';
 import FolderIcon from '@mui/icons-material/Folder';
 import dayjs from 'dayjs';
+import AddResourceModal from '../../components/AddResourceModal';
 
 // Add the missing styled components
 const ClassHeader = styled(Box)({
@@ -176,6 +177,7 @@ function TeacherClasses() {
   const { id } = useParams();
   const [currentTab, setCurrentTab] = useState(0);
   const [isAddResourceOpen, setIsAddResourceOpen] = useState(false);
+  const [selectedResourceType, setSelectedResourceType] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null);
 
   const [modules, setModules] = useState([
@@ -208,8 +210,7 @@ function TeacherClasses() {
   };
 
   const handleResourceTypeSelect = (type) => {
-    console.log(`Adding ${type} to module ${selectedModule}`);
-    setIsAddResourceOpen(false);
+    setSelectedResourceType(type);
   };
 
   return (
@@ -317,8 +318,11 @@ function TeacherClasses() {
 
       {/* Add Resource Dialog */}
       <AddResourceDialog
-        open={isAddResourceOpen}
-        onClose={() => setIsAddResourceOpen(false)}
+        open={isAddResourceOpen && !selectedResourceType}
+        onClose={() => {
+          setIsAddResourceOpen(false);
+          setSelectedResourceType(null);
+        }}
       >
         <DialogTitle>Add Resource</DialogTitle>
         <DialogContent>
@@ -347,15 +351,18 @@ function TeacherClasses() {
             Resource
           </ResourceOption>
         </DialogContent>
-        <DialogActions sx={{ padding: '16px' }}>
-          <Button
-            onClick={() => setIsAddResourceOpen(false)}
-            sx={{ color: 'white' }}
-          >
-            Cancel
-          </Button>
-        </DialogActions>
       </AddResourceDialog>
+
+      {/* Add Resource Modal */}
+      <AddResourceModal
+        open={isAddResourceOpen && selectedResourceType !== null}
+        onClose={() => {
+          setIsAddResourceOpen(false);
+          setSelectedResourceType(null);
+        }}
+        resourceType={selectedResourceType}
+      />
+
     </Box>
   );
 }
