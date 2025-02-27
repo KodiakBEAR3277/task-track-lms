@@ -33,6 +33,7 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import FolderIcon from '@mui/icons-material/Folder';
 import dayjs from 'dayjs';
 import AddResourceModal from '../../components/AddResourceModal';
+import ResourceView from '../../components/ResourceView';
 
 // Add the missing styled components
 const ClassHeader = styled(Box)({
@@ -178,6 +179,7 @@ function TeacherClasses() {
   const [currentTab, setCurrentTab] = useState(0);
   const [isAddResourceOpen, setIsAddResourceOpen] = useState(false);
   const [selectedResourceType, setSelectedResourceType] = useState(null);
+  const [selectedResource, setSelectedResource] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null);
 
   const [modules, setModules] = useState([
@@ -185,8 +187,20 @@ function TeacherClasses() {
       id: 1,
       title: 'Module 1: Introduction',
       resources: [
-        { id: 1, title: 'Lesson 1: Basic Concepts', type: 'lesson' },
-        { id: 2, title: 'Quiz 1', type: 'quiz' },
+        {
+          id: 1,
+          type: 'lesson',
+          title: 'Introduction to the Course',
+          description: 'Overview of what we will learn in this course.',
+          deadline: 'No deadline'
+        },
+        {
+          id: 2,
+          type: 'task',
+          title: 'First Assignment',
+          description: 'Submit your first assignment here.',
+          deadline: '2024-03-01 23:59'
+        }
       ]
     },
   ]);
@@ -211,6 +225,10 @@ function TeacherClasses() {
 
   const handleResourceTypeSelect = (type) => {
     setSelectedResourceType(type);
+  };
+
+  const handleResourceClick = (resource) => {
+    setSelectedResource(resource);
   };
 
   return (
@@ -277,12 +295,103 @@ function TeacherClasses() {
         )}
 
         {/* Main content area */}
-        <Box sx={{ flex: 1, backgroundColor: '#111111', p: 3 }}>
+        <Box 
+          sx={{ 
+            flex: 1, 
+            backgroundColor: '#111111', 
+            p: 3,
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: '#111111',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#333333',
+              borderRadius: '4px',
+              '&:hover': {
+                backgroundColor: '#444444',
+              },
+            },
+          }}
+        >
           <TabPanel value={currentTab} index={0}>
-            {/* Activities content - removed Create Activity button */}
-            <List>
-              {/* Activity items */}
-            </List>
+            <Box sx={{ mb: 3 }}>
+              {modules.map((module) => (
+                <Box
+                  key={module.id}
+                  sx={{
+                    backgroundColor: '#222222',
+                    borderRadius: 1,
+                    mb: 2,
+                    overflow: 'hidden'
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      p: 2,
+                      backgroundColor: '#333333'
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ color: 'white' }}>
+                      {module.title}
+                    </Typography>
+                    <Button
+                      startIcon={<AddIcon />}
+                      onClick={() => {
+                        setSelectedModule(module.id);
+                        setIsAddResourceOpen(true);
+                      }}
+                      sx={{
+                        color: '#FFC600',
+                        '&:hover': { backgroundColor: 'rgba(255, 198, 0, 0.08)' }
+                      }}
+                    >
+                      Add Resource
+                    </Button>
+                  </Box>
+                  <Box sx={{ p: 2 }}>
+                    {module.resources.map((resource) => (
+                      <Button
+                        key={resource.id}
+                        fullWidth
+                        onClick={() => handleResourceClick(resource)}
+                        sx={{
+                          justifyContent: 'flex-start',
+                          textAlign: 'left',
+                          mb: 1,
+                          p: 2,
+                          backgroundColor: '#333333',
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: '#444444'
+                          }
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                          {resource.type === 'lesson' && <ArticleIcon sx={{ mr: 2 }} />}
+                          {resource.type === 'task' && <AssignmentIcon sx={{ mr: 2 }} />}
+                          {resource.type === 'quiz' && <QuizIcon sx={{ mr: 2 }} />}
+                          {resource.type === 'resource' && <FolderIcon sx={{ mr: 2 }} />}
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="subtitle1">
+                              {resource.title}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#999999' }}>
+                              {resource.type.charAt(0).toUpperCase() + resource.type.slice(1)} • Due: {resource.deadline}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Button>
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
           </TabPanel>
 
           <TabPanel value={currentTab} index={1}>
@@ -363,6 +472,28 @@ function TeacherClasses() {
         resourceType={selectedResourceType}
       />
 
+      {selectedResource && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            width: '50%',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.3)',
+            transform: selectedResource ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.3s ease-in-out',
+            zIndex: 1200,
+            overflow: 'auto'
+          }}
+        >
+          <ResourceView
+            resource={selectedResource}
+            onClose={() => setSelectedResource(null)}
+          />
+        </Box>
+      )}
     </Box>
   );
 }

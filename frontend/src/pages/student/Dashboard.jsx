@@ -11,12 +11,20 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  styled
+  styled,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 const drawerWidth = 240;
 
@@ -91,7 +99,38 @@ const ClassCode = styled(Typography)({
 
 function StudentDashboard() {
   const navigate = useNavigate();
-  
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+
+  const handleMenuClick = (event, classItem) => {
+    event.stopPropagation(); // Prevent the card click event
+    setAnchorEl(event.currentTarget);
+    setSelectedClass(classItem);
+  };
+
+  const handleMenuClose = (event) => {
+    event.stopPropagation(); // Prevent the card click event
+    setAnchorEl(null);
+  };
+
+  const handleLeaveClass = (event) => {
+    event.stopPropagation(); // Prevent the card click event
+    setAnchorEl(null);
+    setOpenConfirmDialog(true);
+  };
+
+  const handleConfirmLeave = () => {
+    // Here you would handle the API call to leave the class
+    console.log('Leaving class:', selectedClass);
+    setOpenConfirmDialog(false);
+    // After successful API call, you might want to refresh the classes list
+  };
+
+  const handleCardClick = (classId) => {
+    navigate(`/student/class/${classId}`);
+  };
+
   // Mock data - will be replaced with real data later
   const enrolledClasses = [
     { id: 1, code: 'GKO8BS', name: 'Data Structures and Algorithms', teacher: 'Dr. Smith', schedule: 'MW 9:30-12:00' },
@@ -141,26 +180,29 @@ function StudentDashboard() {
           </Box>
 
           <MuiGrid container spacing={3}>
-            {enrolledClasses.map((class_) => (
-              <MuiGrid item xs={12} sm={6} md={4} key={class_.id}>
+            {enrolledClasses.map((classItem) => (
+              <MuiGrid item xs={12} sm={6} md={4} key={classItem.id}>
                 <ClassCard 
-                  onClick={() => navigate(`/student/class/${class_.id}`)}
+                  onClick={() => handleCardClick(classItem.id)}
                   sx={{ cursor: 'pointer' }}
                 >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <ClassCode>{class_.code}</ClassCode>
-                    <IconButton size="small" sx={{ color: 'white' }}>
+                    <ClassCode>{classItem.code}</ClassCode>
+                    <IconButton
+                      onClick={(e) => handleMenuClick(e, classItem)}
+                      sx={{ color: 'white', '&:hover': { color: '#FFC600' } }}
+                    >
                       <MoreVertIcon />
                     </IconButton>
                   </Box>
                   <Typography variant="h6" sx={{ mb: 1 }}>
-                    {class_.name}
+                    {classItem.name}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#999', mb: 0.5 }}>
-                    {class_.teacher}
+                    {classItem.teacher}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#999' }}>
-                    {class_.schedule}
+                    {classItem.schedule}
                   </Typography>
                 </ClassCard>
               </MuiGrid>
@@ -168,6 +210,66 @@ function StudentDashboard() {
           </MuiGrid>
         </MuiContainer>
       </MainContent>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        onClick={handleMenuClose}
+        PaperProps={{
+          sx: {
+            backgroundColor: '#333333',
+            color: 'white',
+            '& .MuiMenuItem-root': {
+              '&:hover': {
+                backgroundColor: '#444444',
+              },
+            },
+          },
+        }}
+      >
+        <MenuItem onClick={handleLeaveClass}>
+          <Typography sx={{ color: '#FF4444' }}>Leave Class</Typography>
+        </MenuItem>
+      </Menu>
+
+      <Dialog
+        open={openConfirmDialog}
+        onClose={() => setOpenConfirmDialog(false)}
+        PaperProps={{
+          sx: {
+            backgroundColor: '#222222',
+            color: 'white',
+          },
+        }}
+      >
+        <DialogTitle>Leave Class</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to leave {selectedClass?.name}? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setOpenConfirmDialog(false)}
+            sx={{ color: '#999999' }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleConfirmLeave}
+            sx={{ 
+              color: 'white',
+              backgroundColor: '#FF4444',
+              '&:hover': {
+                backgroundColor: '#FF6666',
+              },
+            }}
+          >
+            Leave Class
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

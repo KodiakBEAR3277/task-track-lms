@@ -26,6 +26,7 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import QuizIcon from '@mui/icons-material/Quiz';
 import FolderIcon from '@mui/icons-material/Folder';
 import dayjs from 'dayjs';
+import StudentResourceView from '../../components/StudentResourceView';
 
 const ClassHeader = styled(Box)({
   backgroundColor: '#222222',
@@ -169,6 +170,7 @@ function ClassView() {
   const { id } = useParams();
   const [currentTab, setCurrentTab] = useState(0);
   const [currentDate, setCurrentDate] = useState(dayjs());
+  const [selectedResource, setSelectedResource] = useState(null);
 
   console.log('Class ID:', id);
 
@@ -217,22 +219,54 @@ function ClassView() {
       id: 1,
       title: 'Module 1: Introduction',
       resources: [
-        { id: 1, title: 'Lesson 1: Basic Concepts', type: 'lesson' },
-        { id: 2, title: 'Quiz 1', type: 'quiz' },
+        {
+          id: 1,
+          type: 'lesson',
+          title: 'Introduction to the Course',
+          description: 'Overview of what we will learn in this course.',
+          deadline: 'No deadline',
+          mediaUrl: 'path/to/intro.pdf'
+        },
+        {
+          id: 2,
+          type: 'task',
+          title: 'First Assignment',
+          description: 'Submit your first assignment here.',
+          deadline: '2024-03-01 23:59',
+          submissionStatus: 'pending'
+        }
       ]
     },
     {
       id: 2,
       title: 'Module 2: Advanced Topics',
       resources: [
-        { id: 3, title: 'Lesson 2: Advanced Features', type: 'lesson' },
-        { id: 4, title: 'Assignment 1', type: 'assignment' },
+        {
+          id: 3,
+          type: 'lesson',
+          title: 'Lesson 2: Advanced Features',
+          description: 'Learn about advanced features of the course.',
+          deadline: 'No deadline',
+          mediaUrl: 'path/to/advanced.pdf'
+        },
+        {
+          id: 4,
+          type: 'quiz',
+          title: 'Quiz 1',
+          description: 'Take the first quiz.',
+          deadline: '2024-03-15 23:59',
+          submissionStatus: 'pending'
+        }
       ]
     }
   ]);
 
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
+  };
+
+  const handleResourceClick = (resource) => {
+    setSelectedResource(resource);
   };
 
   const generateCalendarDays = () => {
@@ -300,24 +334,104 @@ function ClassView() {
         )}
 
         {/* Main content area */}
-        <Box sx={{ flex: 1, backgroundColor: '#111111', p: 3 }}>
+        <Box 
+          sx={{ 
+            flex: 1, 
+            backgroundColor: '#111111', 
+            p: 3,
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: '#111111',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#333333',
+              borderRadius: '4px',
+              '&:hover': {
+                backgroundColor: '#444444',
+              },
+            },
+          }}
+        >
           <TabPanel value={currentTab} index={0}>
-            {/* Activities content */}
-            <Typography variant="h6" sx={{ color: '#FFC600', mb: 3 }}>
-              Current Activities
-            </Typography>
-            <List>
-              <ActivityItem>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Typography variant="h6" sx={{ color: '#FFC600' }}>
-                    M1LAB1: Basic Java Program
-                  </Typography>
+            <Box sx={{ mb: 3 }}>
+              {modules.map((module) => (
+                <Box
+                  key={module.id}
+                  sx={{
+                    backgroundColor: '#222222',
+                    borderRadius: 1,
+                    mb: 2,
+                    overflow: 'hidden'
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      p: 2,
+                      backgroundColor: '#333333'
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ color: 'white' }}>
+                      {module.title}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ p: 2 }}>
+                    {module.resources.map((resource) => (
+                      <Button
+                        key={resource.id}
+                        fullWidth
+                        onClick={() => handleResourceClick(resource)}
+                        sx={{
+                          justifyContent: 'flex-start',
+                          textAlign: 'left',
+                          mb: 1,
+                          p: 2,
+                          backgroundColor: '#333333',
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: '#444444'
+                          }
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                          {resource.type === 'lesson' && <ArticleIcon sx={{ mr: 2 }} />}
+                          {resource.type === 'task' && <AssignmentIcon sx={{ mr: 2 }} />}
+                          {resource.type === 'quiz' && <QuizIcon sx={{ mr: 2 }} />}
+                          {resource.type === 'resource' && <FolderIcon sx={{ mr: 2 }} />}
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="subtitle1">
+                              {resource.title}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#999999' }}>
+                              {resource.type.charAt(0).toUpperCase() + resource.type.slice(1)} • Due: {resource.deadline}
+                            </Typography>
+                          </Box>
+                          {(resource.type === 'task' || resource.type === 'quiz') && (
+                            <Box
+                              sx={{
+                                ml: 2,
+                                px: 2,
+                                py: 0.5,
+                                borderRadius: 1,
+                                backgroundColor: resource.submissionStatus === 'submitted' ? '#4CAF50' : '#FFC600',
+                                color: resource.submissionStatus === 'submitted' ? 'white' : 'black',
+                              }}
+                            >
+                              {resource.submissionStatus === 'submitted' ? 'Submitted' : 'Pending'}
+                            </Box>
+                          )}
+                        </Box>
+                      </Button>
+                    ))}
+                  </Box>
                 </Box>
-                <Typography variant="caption" sx={{ color: '#999' }}>
-                  Due: Aug. 30, 2024
-                </Typography>
-              </ActivityItem>
-            </List>
+              ))}
+            </Box>
           </TabPanel>
 
           {/* People Tab */}
@@ -436,8 +550,31 @@ function ClassView() {
           </TabPanel>
         </Box>
       </Box>
+
+      {selectedResource && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            width: '50%',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.3)',
+            transform: selectedResource ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.3s ease-in-out',
+            zIndex: 1200,
+            overflow: 'auto'
+          }}
+        >
+          <StudentResourceView
+            resource={selectedResource}
+            onClose={() => setSelectedResource(null)}
+          />
+        </Box>
+      )}
     </Box>
   );
 }
 
-export default ClassView; 
+export default ClassView;
