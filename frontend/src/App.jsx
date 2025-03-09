@@ -1,6 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import theme from './styles/theme';
+import { ProtectedRoute } from './components/ProtectedRoute';
+
+// Layouts
+import StudentLayout from './layouts/StudentLayout';
+import TeacherLayout from './layouts/TeacherLayout';
+import AdminLayout from './layouts/AdminLayout';
 
 // Public Pages
 import Landing from './pages/public/Landing';
@@ -16,6 +23,7 @@ import ClassView from './pages/student/ClassView';
 import TeacherDashboard from './pages/teacher/Dashboard';
 import TeacherClasses from './pages/teacher/Classes';
 import TeacherSchedule from './pages/teacher/Schedule';
+import TeacherClassView from './pages/teacher/ClassView';  // Add this line
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -23,23 +31,6 @@ import Users from './pages/admin/Users';
 import Classes from './pages/admin/Classes';
 import Teachers from './pages/admin/Teachers';
 import Students from './pages/admin/Students';
-
-// Create a theme instance
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#FFC600',
-    },
-    secondary: {
-      main: '#222222',
-    },
-    background: {
-      default: '#111111',
-      paper: '#222222',
-    },
-  },
-});
 
 function App() {
   return (
@@ -53,21 +44,32 @@ function App() {
           <Route path="/signup" element={<Signup />} />
 
           {/* Student Routes */}
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
-          <Route path="/student/calendar" element={<StudentCalendar />} />
-          <Route path="/student/class/:id" element={<ClassView />} />
+          <Route path="/student" element={
+            <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
+              <StudentLayout />
+            </ProtectedRoute>
+          }>
+            <Route path="dashboard" element={<StudentDashboard />} />
+            <Route path="calendar" element={<StudentCalendar />} />
+            <Route path="class/:id" element={<ClassView />} />
+          </Route>
           
           {/* Teacher Routes */}
-          <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-          <Route path="/teacher/schedule" element={<TeacherSchedule />} />
-          <Route path="/teacher/classes/:id" element={<TeacherClasses />} />
+          <Route path="/teacher" element={
+            <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+              <TeacherLayout />
+            </ProtectedRoute>
+          }>
+            <Route path="dashboard" element={<TeacherDashboard />} />
+            <Route path="classes" element={<TeacherClasses />} />
+          </Route>
 
           {/* Admin Routes */}
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<Users />} />
-          <Route path="/admin/teachers" element={<Teachers />} />
-          <Route path="/admin/students" element={<Students />} />
-          <Route path="/admin/classes" element={<Classes />} />
+          <Route path="/admin/*" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminLayout />
+            </ProtectedRoute>
+          } />
         </Routes>
       </Router>
     </ThemeProvider>

@@ -1,4 +1,5 @@
-import { styled } from '@mui/material/styles';
+import { styled as muiStyled } from '@mui/material/styles';
+import { Box, Button, TextField } from '@mui/material';
 
 const colors = {
   primary: '#FFC600',
@@ -10,128 +11,106 @@ const colors = {
   hover: '#FFE333'
 };
 
-export const PageContainer = styled('div')({
+export const PageContainer = muiStyled(Box)({
+  minHeight: '100vh',
   display: 'flex',
   flexDirection: 'column',
-  minHeight: '100vh',
-  width: '100%',
-  backgroundColor: '#222222',
-  justifyContent: 'center',
   alignItems: 'center',
-  padding: '20px',
-  margin: 0,
-  boxSizing: 'border-box',
-  overflowX: 'hidden',
+  justifyContent: 'center',
+  backgroundColor: '#111111'
 });
 
-export const FormContainer = styled('form')({
+export const FormContainer = muiStyled('form')({
+  backgroundColor: '#222222',  // Changed from white to dark
+  padding: '2rem',
+  borderRadius: '8px',
   width: '100%',
   maxWidth: '400px',
-  padding: '2rem',
-  backgroundColor: colors.containerBg,
-  borderRadius: '16px',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '15px',
-  margin: '0 auto',
-  boxSizing: 'border-box',
-  '@media (max-width: 480px)': {
-    padding: '1.5rem',
-    maxWidth: '90%',
-  }
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+  border: '1px solid #333'  // Added border for better visibility
 });
 
-export const Title = styled('h1')({
-  fontFamily: 'Inter, sans-serif',
-  fontSize: '2.5rem',
-  fontWeight: 700,
+export const Title = muiStyled('h1')({
   color: colors.primary,
+  fontSize: '2.5rem',
   marginBottom: '2rem',
-  textAlign: 'center',
-  '@media (max-width: 480px)': {
-    fontSize: '2rem',
+  textAlign: 'center'
+});
+
+export const Input = muiStyled(TextField)({
+  width: '100%',
+  marginBottom: '1rem',
+  '& .MuiOutlinedInput-root': {
+    color: colors.text,
+    backgroundColor: '#333',
+    '& fieldset': {
+      borderColor: '#333'
+    },
+    '&:hover fieldset': {
+      borderColor: '#444'
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: colors.primary
+    }
+  },
+  '& .MuiInputLabel-root': {
+    color: '#888'
   }
 });
 
-export const Input = styled('input')(({ hasError }) => ({
+export const Select = muiStyled('select')({
   width: '100%',
-  padding: '12px',
-  border: hasError ? `1px solid ${colors.error}` : '1px solid #ddd',
-  borderRadius: '8px',
-  fontSize: '16px',
-  backgroundColor: 'white',
+  padding: '0.75rem',
+  marginBottom: '1rem',
+  border: '1px solid #333',
+  borderRadius: '4px',
+  backgroundColor: '#333',
+  color: colors.text,
   '&:focus': {
     outline: 'none',
-    borderColor: hasError ? colors.error : colors.primary,
-    boxShadow: `0 0 0 2px ${hasError ? 'rgba(255, 59, 59, 0.2)' : 'rgba(255, 198, 0, 0.2)'}`,
+    borderColor: colors.primary
+  },
+  '& option': {
+    backgroundColor: '#222222',
+    color: colors.text
   }
-}));
+});
 
-export const StyledButton = styled('button')({
+export const StyledButton = muiStyled(Button)({
   width: '100%',
-  padding: '12px',
+  padding: '0.75rem',
   backgroundColor: colors.primary,
   color: colors.textDark,
   border: 'none',
-  borderRadius: '8px',
+  borderRadius: '4px',
   cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: '1rem',
-  transition: 'all 0.2s ease',
+  fontWeight: 'bold',
   '&:hover': {
-    backgroundColor: colors.hover,
-    transform: 'translateY(-1px)',
-  },
-  '&:active': {
-    transform: 'translateY(0)',
+    backgroundColor: colors.hover
   }
 });
 
-export const ErrorMessage = styled('span')({
+export const ErrorMessage = muiStyled('span')({
   color: colors.error,
-  fontSize: '12px',
-  marginTop: '4px',
-  fontWeight: 500,
+  fontSize: '0.875rem',
+  marginTop: '-0.5rem',
+  marginBottom: '0.5rem',
+  display: 'block'
 });
 
-export const LinkText = styled('div')({
-  marginTop: '1rem',
+export const LinkText = muiStyled('p')({
   textAlign: 'center',
-  color: colors.textDark,
-  fontSize: '0.875rem',
+  marginTop: '1rem',
+  color: '#888',
   '& button': {
+    color: colors.primary,
     background: 'none',
     border: 'none',
-    color: colors.primary,
-    fontWeight: 600,
-    cursor: 'pointer',
     padding: 0,
-    margin: 0,
-    transition: 'color 0.2s ease',
+    fontWeight: 'bold',
+    cursor: 'pointer',
     '&:hover': {
-      color: colors.hover,
+      color: colors.hover
     }
   }
 });
-
-export const Select = styled('select')({
-  width: '100%',
-  padding: '12px',
-  borderRadius: '8px',
-  border: '1px solid #ddd',
-  fontSize: '16px',
-  backgroundColor: 'white',
-  color: '#000000',
-  cursor: 'pointer',
-  appearance: 'auto',
-  '&:focus': {
-    outline: 'none',
-    borderColor: colors.primary,
-    boxShadow: '0 0 0 2px rgba(255, 198, 0, 0.2)',
-  },
-  '& option': {
-    backgroundColor: 'white',
-    color: '#000000',
-  }
-}); 

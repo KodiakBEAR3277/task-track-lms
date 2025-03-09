@@ -14,15 +14,44 @@ function Signup() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    password: ''
+    password: '',
+    role: 'student' // Default role, no need for selection
   });
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Validation logic here
-    // API call will be added later
+    const newErrors = {};
+    
+    if (!formData.username) newErrors.username = 'Username is required';
+    if (!formData.email) newErrors.email = 'Email is required';
+    if (!formData.password) newErrors.password = 'Password is required';
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:5000/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        navigate('/login');
+      } else {
+        setErrors({ general: data.error });
+      }
+    } catch (error) {
+      setErrors({ general: 'An error occurred. Please try again.' });
+    }
   };
 
   return (
@@ -35,9 +64,9 @@ function Signup() {
             value={formData.username}
             onChange={(e) => setFormData({...formData, username: e.target.value})}
             placeholder="Username"
-            hasError={errors.username}
+            error={!!errors.username}
+            helperText={errors.username}
           />
-          {errors.username && <ErrorMessage>{errors.username}</ErrorMessage>}
         </div>
         <div>
           <Input

@@ -1,272 +1,262 @@
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container as MuiContainer,
-  Grid as MuiGrid,
   Typography,
+  Grid,
   Card,
-  TextField,
   IconButton,
-  Drawer,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  styled,
   Menu,
   MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button
+  Button,
+  Alert,
+  CircularProgress,
+  TextField // Added TextField import
 } from '@mui/material';
-import HomeIcon from '@mui/icons-material/Home';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { styled } from '@mui/material/styles';
+import studentApi from '../../services/studentApi';
 
-const drawerWidth = 240;
-
-const StyledDrawer = styled(Drawer)({
-  width: drawerWidth,
-  flexShrink: 0,
-  '& .MuiDrawer-paper': {
-    width: drawerWidth,
-    boxSizing: 'border-box',
-    backgroundColor: '#222222',
-    color: 'white',
-  },
-});
-
-const MainContent = styled(Box)({
-  flexGrow: 1,
-  padding: '32px',
-  backgroundColor: '#111111',
-  minHeight: '100vh',
-  '& .MuiContainer-root': {
-    paddingLeft: 0,
-    paddingRight: 0,
-    marginLeft: 0,
-    marginRight: 0,
-    maxWidth: 'none'
-  }
-});
-
-const ClassCodeInput = styled(TextField)({
-  '& .MuiOutlinedInput-root': {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    '& input': {
-      color: '#000000',
-    },
-    '& fieldset': {
-      borderColor: '#ddd',
-    },
-    '&:hover fieldset': {
-      borderColor: '#FFC600',
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: '#FFC600',
-    },
-  },
-  '& .MuiInputLabel-root': {
-    color: '#666',
-    backgroundColor: 'white',
-    padding: '0 4px',
-    '&.Mui-focused': {
-      color: '#FFC600',
-    },
-  },
-});
-
+// Keep only these styled components
 const ClassCard = styled(Card)({
   backgroundColor: '#222222',
   color: 'white',
-  padding: '1.5rem',
-  borderRadius: '12px',
-  transition: 'transform 0.2s',
+  padding: '20px',
   '&:hover': {
-    transform: 'translateY(-4px)',
-  },
+    backgroundColor: '#2a2a2a',
+  }
 });
 
-const ClassCode = styled(Typography)({
-  color: '#FFC600',
-  fontWeight: 'bold',
-  fontSize: '0.875rem',
+const ClassCodeInput = styled('div')({
+  display: 'flex',
+  gap: '16px',
+  marginBottom: '32px',
+  '& .MuiTextField-root': {
+    backgroundColor: '#222222',
+    borderRadius: '4px',
+    '& input': {
+      color: 'white',
+    }
+  }
 });
+
+// Add error boundary component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Dashboard Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Box sx={{ p: 3, color: 'white' }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            Something went wrong. Please try refreshing the page.
+            {process.env.NODE_ENV === 'development' && (
+              <pre style={{ whiteSpace: 'pre-wrap' }}>
+                {this.state.error?.toString()}
+              </pre>
+            )}
+          </Alert>
+          <Button 
+            variant="contained" 
+            onClick={() => window.location.reload()}
+            sx={{ bgcolor: '#FFC600', color: '#000' }}
+          >
+            Refresh Page
+          </Button>
+        </Box>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 function StudentDashboard() {
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [classCode, setClassCode] = useState('');
+  const [joinLoading, setJoinLoading] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(false);
 
-  const handleMenuClick = (event, classItem) => {
-    event.stopPropagation(); // Prevent the card click event
-    setAnchorEl(event.currentTarget);
-    setSelectedClass(classItem);
+  // Fetch enrolled classes
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
+  const fetchClasses = async () => {
+    try {
+      setLoading(true);
+      const data = await studentApi.getEnrolledClasses();
+      setClasses(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load classes');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleMenuClose = (event) => {
-    event.stopPropagation(); // Prevent the card click event
-    setAnchorEl(null);
+  const handleJoinClass = async () => {
+    if (!classCode.trim()) return;
+    
+    try {
+      setJoinLoading(true);
+      await studentApi.joinClass(classCode);
+      await fetchClasses();
+      setClassCode('');
+      setError(null);
+    } catch (err) {
+      setError('Invalid class code or already enrolled');
+    } finally {
+      setJoinLoading(false);
+    }
   };
 
-  const handleLeaveClass = (event) => {
-    event.stopPropagation(); // Prevent the card click event
-    setAnchorEl(null);
-    setOpenConfirmDialog(true);
+  const handleLeaveClass = async () => {
+    if (!selectedClass) return;
+    
+    try {
+      await studentApi.leaveClass(selectedClass.id);
+      await fetchClasses();
+      setConfirmDialog(false);
+      setSelectedClass(null);
+    } catch (err) {
+      setError('Failed to leave class');
+    }
   };
 
-  const handleConfirmLeave = () => {
-    // Here you would handle the API call to leave the class
-    console.log('Leaving class:', selectedClass);
-    setOpenConfirmDialog(false);
-    // After successful API call, you might want to refresh the classes list
-  };
-
-  const handleCardClick = (classId) => {
-    navigate(`/student/class/${classId}`);
-  };
-
-  // Mock data - will be replaced with real data later
-  const enrolledClasses = [
-    { id: 1, code: 'GKO8BS', name: 'Data Structures and Algorithms', teacher: 'Dr. Smith', schedule: 'MW 9:30-12:00' },
-    { id: 2, code: 'CT2OKY', name: 'Object-Oriented Programming', teacher: 'Prof. Johnson', schedule: 'TTH 9:30-12:00' },
-    { id: 3, code: 'WWDQ4F', name: 'Human-Computer Interaction', teacher: 'Mrs. Davis', schedule: 'MW 13:00-15:30' },
-  ];
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <StyledDrawer variant="permanent">
-        <List sx={{ marginTop: '2rem' }}>
-          <ListItem 
-            button 
-            selected 
-            onClick={() => navigate('/student/dashboard')}
-          >
-            <ListItemIcon sx={{ color: '#FFC600' }}>
-              <HomeIcon />
-            </ListItemIcon>
-            <ListItemText primary="Home" />
-          </ListItem>
-          <ListItem 
-            button
-            onClick={() => navigate('/student/calendar')}
-          >
-            <ListItemIcon sx={{ color: 'white' }}>
-              <CalendarMonthIcon />
-            </ListItemIcon>
-            <ListItemText primary="Calendar" />
-          </ListItem>
-        </List>
-      </StyledDrawer>
+    <Box>
+      <Typography variant="h4" sx={{ mb: 4, color: 'white' }}>
+        My Classes
+      </Typography>
 
-      <MainContent>
-        <MuiContainer>
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h4" sx={{ color: 'white', mb: 3 }}>
-              Classes
-            </Typography>
-            <ClassCodeInput
-              fullWidth
-              label="Enter Class Code"
-              variant="outlined"
-              placeholder="Enter the code provided by your teacher"
-              sx={{ maxWidth: 400 }}
-            />
-          </Box>
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
-          <MuiGrid container spacing={3}>
-            {enrolledClasses.map((classItem) => (
-              <MuiGrid item xs={12} sm={6} md={4} key={classItem.id}>
-                <ClassCard 
-                  onClick={() => handleCardClick(classItem.id)}
-                  sx={{ cursor: 'pointer' }}
+      <ClassCodeInput>
+        <TextField
+          fullWidth
+          placeholder="Enter class code"
+          value={classCode}
+          onChange={(e) => setClassCode(e.target.value)}
+          disabled={joinLoading}
+        />
+        <Button
+          variant="contained"
+          onClick={handleJoinClass}
+          disabled={joinLoading || !classCode.trim()}
+          sx={{
+            bgcolor: '#FFC600',
+            color: '#000',
+            '&:hover': { bgcolor: '#FFD700' }
+          }}
+        >
+          {joinLoading ? <CircularProgress size={24} /> : 'Join Class'}
+        </Button>
+      </ClassCodeInput>
+
+      <Grid container spacing={3}>
+        {classes.map((classItem) => (
+          <Grid item xs={12} sm={6} md={4} key={classItem.id}>
+            <ClassCard>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="overline" sx={{ color: '#FFC600' }}>
+                  {classItem.code}
+                </Typography>
+                <IconButton
+                  onClick={(e) => {
+                    setMenuAnchor(e.currentTarget);
+                    setSelectedClass(classItem);
+                  }}
+                  sx={{ color: 'white' }}
                 >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <ClassCode>{classItem.code}</ClassCode>
-                    <IconButton
-                      onClick={(e) => handleMenuClick(e, classItem)}
-                      sx={{ color: 'white', '&:hover': { color: '#FFC600' } }}
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
-                  </Box>
-                  <Typography variant="h6" sx={{ mb: 1 }}>
-                    {classItem.name}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#999', mb: 0.5 }}>
-                    {classItem.teacher}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#999' }}>
-                    {classItem.schedule}
-                  </Typography>
-                </ClassCard>
-              </MuiGrid>
-            ))}
-          </MuiGrid>
-        </MuiContainer>
-      </MainContent>
+                  <MoreVertIcon />
+                </IconButton>
+              </Box>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                {classItem.name}
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#999' }}>
+                {classItem.teacher}
+              </Typography>
+            </ClassCard>
+          </Grid>
+        ))}
+      </Grid>
 
       <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        onClick={handleMenuClose}
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={() => setMenuAnchor(null)}
         PaperProps={{
-          sx: {
-            backgroundColor: '#333333',
-            color: 'white',
-            '& .MuiMenuItem-root': {
-              '&:hover': {
-                backgroundColor: '#444444',
-              },
-            },
-          },
+          sx: { bgcolor: '#333333' }
         }}
       >
-        <MenuItem onClick={handleLeaveClass}>
-          <Typography sx={{ color: '#FF4444' }}>Leave Class</Typography>
+        <MenuItem 
+          onClick={() => {
+            setMenuAnchor(null);
+            setConfirmDialog(true);
+          }}
+          sx={{ color: '#FF4444' }}
+        >
+          Leave Class
         </MenuItem>
       </Menu>
 
       <Dialog
-        open={openConfirmDialog}
-        onClose={() => setOpenConfirmDialog(false)}
+        open={confirmDialog}
+        onClose={() => setConfirmDialog(false)}
         PaperProps={{
-          sx: {
-            backgroundColor: '#222222',
-            color: 'white',
-          },
+          sx: { bgcolor: '#222222', color: 'white' }
         }}
       >
         <DialogTitle>Leave Class</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to leave {selectedClass?.name}? This action cannot be undone.
+            Are you sure you want to leave {selectedClass?.name}?
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={() => setOpenConfirmDialog(false)}
-            sx={{ color: '#999999' }}
-          >
+          <Button onClick={() => setConfirmDialog(false)}>
             Cancel
           </Button>
           <Button 
-            onClick={handleConfirmLeave}
-            sx={{ 
-              color: 'white',
-              backgroundColor: '#FF4444',
-              '&:hover': {
-                backgroundColor: '#FF6666',
-              },
-            }}
+            onClick={handleLeaveClass}
+            sx={{ color: '#FF4444' }}
           >
-            Leave Class
+            Leave
           </Button>
         </DialogActions>
       </Dialog>
@@ -274,4 +264,13 @@ function StudentDashboard() {
   );
 }
 
-export default StudentDashboard; 
+// Wrap the dashboard component with error boundary
+function StudentDashboardWrapper() {
+  return (
+    <ErrorBoundary>
+      <StudentDashboard />
+    </ErrorBoundary>
+  );
+}
+
+export default StudentDashboardWrapper;

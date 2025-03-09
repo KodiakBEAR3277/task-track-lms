@@ -7,10 +7,9 @@ import {
   Paper,
   Button,
   CircularProgress,
-  Alert
+  Alert,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import teacherApi from '../../services/teacherApi';
 
 const ClassHeader = styled(Box)({
   backgroundColor: '#222222',
@@ -25,21 +24,8 @@ function TeacherClassView() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchClassDetails = async () => {
-      try {
-        setLoading(true);
-        const data = await teacherApi.getClassDetails(id);
-        setClassData(data);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load class details');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClassDetails();
+    // TODO: Add API call to fetch class details
+    setLoading(false);
   }, [id]);
 
   if (loading) {
@@ -50,27 +36,19 @@ function TeacherClassView() {
     );
   }
 
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ m: 2 }}>
-        {error}
-      </Alert>
-    );
-  }
-
   return (
     <Box>
       <ClassHeader>
-        <Typography variant="h4" sx={{ mb: 1 }}>
-          {classData?.name || 'Class Details'}
+        <Typography variant="h4">
+          Class View
         </Typography>
         <Typography variant="subtitle1" sx={{ color: '#999' }}>
-          Class Code: {classData?.code}
+          Class ID: {id}
         </Typography>
       </ClassHeader>
-
+      
       <Box sx={{ p: 3 }}>
-        {/* Add class content here */}
+        {/* Add your class content here */}
       </Box>
     </Box>
   );
