@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Box,
@@ -7,35 +7,25 @@ import {
   Tab,
   List,
   ListItem,
-  IconButton,
-  styled,
-  Avatar,
-  Grid,
-  Paper,
-  Button
+  ListItemText,
+  Button,
+  Alert,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper
 } from '@mui/material';
-import { DateCalendar, PickersDay } from '@mui/x-date-pickers';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import GridViewIcon from '@mui/icons-material/GridView';
-import PeopleIcon from '@mui/icons-material/People';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import ArticleIcon from '@mui/icons-material/Article';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import QuizIcon from '@mui/icons-material/Quiz';
-import FolderIcon from '@mui/icons-material/Folder';
-import dayjs from 'dayjs';
-import StudentResourceView from '../../components/StudentResourceView';
+import { styled } from '@mui/material/styles';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import studentApi from '../../services/studentApi';
 
-const ClassHeader = styled(Box)({
+// Reuse styled components
+const StyledTabs = styled(Tabs)(({ theme }) => ({
   backgroundColor: '#222222',
-  padding: '2rem',
-  color: 'white',
-});
-
-const StyledTabs = styled(Tabs)({ 
-  backgroundColor: '#333333',
   '& .MuiTab-root': {
     color: 'white',
     '&.Mui-selected': {
@@ -45,536 +35,334 @@ const StyledTabs = styled(Tabs)({
   '& .MuiTabs-indicator': {
     backgroundColor: '#FFC600',
   }
-});
+}));
 
-const ActivityItem = styled(ListItem)({
+const ModuleContainer = styled(Box)(({ theme }) => ({
   backgroundColor: '#222222',
-  margin: '8px 0',
-  padding: '16px',
-  borderRadius: '8px',
-  '&:hover': {
-    backgroundColor: '#2a2a2a',
-  }
-});
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(2),
+  marginBottom: theme.spacing(2)
+}));
 
-const TabPanel = ({ children, value, index }) => (
-  <div hidden={value !== index} style={{ padding: '24px' }}>
-    {value === index && children}
-  </div>
-);
-
-const TimelineContainer = styled(Box)({
-  marginTop: '2rem',
-  padding: '1.5rem',
+const ContentArea = styled(Box)(({ theme }) => ({
   backgroundColor: '#222222',
-  borderRadius: '8px',
-  '& .timeline-header': {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: '1.5rem',
-  }
-});
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(3),
+  minHeight: 400
+}));
 
-const TimelineItem = styled(Box)({
-  position: 'relative',
-  padding: '1rem 1.5rem',
-  backgroundColor: 'rgba(255, 198, 0, 0.1)',
-  borderLeft: '3px solid #FFC600',
-  marginBottom: '1rem',
-  borderRadius: '0 8px 8px 0',
-  transition: 'transform 0.2s',
+const ContentListItem = styled(ListItem)(({ theme }) => ({
+  backgroundColor: '#2a2a2a',
+  borderRadius: theme.shape.borderRadius,
+  marginBottom: theme.spacing(1),
   '&:hover': {
-    transform: 'translateX(5px)',
+    backgroundColor: '#333333',
+  },
+  '&.Mui-selected': {
     backgroundColor: 'rgba(255, 198, 0, 0.15)',
-  }
-});
-
-const CalendarGrid = styled(Box)({
-  backgroundColor: '#222222',
-  borderRadius: '8px',
-  overflow: 'hidden',
-  '& .calendar-header': {
-    padding: '1rem',
-    borderBottom: '1px solid #333',
-  },
-  '& .calendar-body': {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(7, 1fr)',
-    gap: '1px',
-    backgroundColor: '#333',
-  },
-  '& .calendar-day': {
-    backgroundColor: '#222222',
-    padding: '0.5rem',
-    minHeight: '100px',
-    '&.today': {
-      backgroundColor: 'rgba(255, 198, 0, 0.1)',
-    },
-    '&.different-month': {
-      opacity: 0.5,
+    '&:hover': {
+      backgroundColor: 'rgba(255, 198, 0, 0.25)',
     }
   }
-});
+}));
 
-const CalendarEvent = styled(Box)({
-  backgroundColor: 'rgba(255, 198, 0, 0.2)',
-  border: '1px solid #FFC600',
-  borderRadius: '4px',
-  padding: '4px 8px',
-  fontSize: '0.75rem',
-  color: '#FFC600',
-  marginBottom: '4px',
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 198, 0, 0.3)',
-  }
-});
+const ActivitiesTab = ({ classId, modules }) => {
+  const [selectedContent, setSelectedContent] = useState(null);
 
-const SidebarDrawer = styled(Box)({
-  width: '300px',
-  backgroundColor: '#222222',
-  borderRight: '1px solid #333333',
-  height: '100%',
-  overflowY: 'auto',
-});
+  console.log('Modules received in ActivitiesTab:', modules);
 
-const ModuleContainer = styled(Box)({
-  backgroundColor: '#333333',
-  margin: '8px',
-  borderRadius: '8px',
-  overflow: 'hidden',
-});
+  const renderContentActions = (content) => {
+    if (!content.link_url) return null;
 
-const ModuleHeader = styled(Box)({
-  padding: '12px 16px',
-  backgroundColor: '#444444',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-});
-
-const ResourceButton = styled(Button)({
-  width: '100%',
-  justifyContent: 'flex-start',
-  padding: '8px 16px',
-  color: 'white',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 198, 0, 0.1)',
-  },
-});
-
-function ClassView() {
-  const { id } = useParams();
-  const [currentTab, setCurrentTab] = useState(0);
-  const [currentDate, setCurrentDate] = useState(dayjs());
-  const [selectedResource, setSelectedResource] = useState(null);
-
-  console.log('Class ID:', id);
-
-  // Mock timeline data
-  const timelineEvents = [
-    {
-      id: 1,
-      title: 'M1LAB1: Basic Java Program',
-      type: 'Laboratory',
-      startDate: 'Aug 21, 2024',
-      dueDate: 'Aug 30, 2024',
-      status: 'ongoing'
-    },
-    {
-      id: 2,
-      title: 'Performance Task 1: Java Application',
-      type: 'Project',
-      startDate: 'Aug 25, 2024',
-      dueDate: 'Sep 15, 2024',
-      status: 'upcoming'
-    }
-  ];
-
-  // Mock data for lessons and events
-  const events = [
-    {
-      id: 1,
-      title: 'Module 2 - Java Operators, Strings, Math class',
-      startDate: '2024-09-02',
-      endDate: '2024-09-13',
-      type: 'module'
-    },
-    {
-      id: 2,
-      title: 'L1. Typecasting and Operators',
-      startDate: '2024-09-13',
-      endDate: '2024-09-13',
-      type: 'lesson'
-    },
-    // Add more events as needed
-  ];
-
-  // Mock modules data (similar to TeacherClasses)
-  const [modules] = useState([
-    {
-      id: 1,
-      title: 'Module 1: Introduction',
-      resources: [
-        {
-          id: 1,
-          type: 'lesson',
-          title: 'Introduction to the Course',
-          description: 'Overview of what we will learn in this course.',
-          deadline: 'No deadline',
-          mediaUrl: 'path/to/intro.pdf'
-        },
-        {
-          id: 2,
-          type: 'task',
-          title: 'First Assignment',
-          description: 'Submit your first assignment here.',
-          deadline: '2024-03-01 23:59',
-          submissionStatus: 'pending'
-        }
-      ]
-    },
-    {
-      id: 2,
-      title: 'Module 2: Advanced Topics',
-      resources: [
-        {
-          id: 3,
-          type: 'lesson',
-          title: 'Lesson 2: Advanced Features',
-          description: 'Learn about advanced features of the course.',
-          deadline: 'No deadline',
-          mediaUrl: 'path/to/advanced.pdf'
-        },
-        {
-          id: 4,
-          type: 'quiz',
-          title: 'Quiz 1',
-          description: 'Take the first quiz.',
-          deadline: '2024-03-15 23:59',
-          submissionStatus: 'pending'
-        }
-      ]
-    }
-  ]);
-
-  const handleTabChange = (event, newValue) => {
-    setCurrentTab(newValue);
-  };
-
-  const handleResourceClick = (resource) => {
-    setSelectedResource(resource);
-  };
-
-  const generateCalendarDays = () => {
-    const start = currentDate.startOf('month').startOf('week');
-    const end = currentDate.endOf('month').endOf('week');
-    const days = [];
-    let day = start;
-
-    while (day.isBefore(end)) {
-      days.push(day);
-      day = day.add(1, 'day');
-    }
-
-    return days;
-  };
-
-  const getEventsForDay = (date) => {
-    return events.filter(event => {
-      const start = dayjs(event.startDate);
-      const end = dayjs(event.endDate);
-      return date.isBetween(start, end, 'day', '[]');
-    });
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="body2" sx={{ color: '#999' }}>
+          {content.type === 'task' ? 'Task Link' : 
+           content.type === 'quiz' ? 'Quiz Link' : 'Material Link'}: {' '}
+          <a 
+            href={content.link_url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              color: '#2196F3',
+              textDecoration: 'none',
+            }}
+            onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+            onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+          >
+            {content.link_url}
+          </a>
+        </Typography>
+        {content.points && (
+          <Typography variant="body2" sx={{ color: '#999', mt: 1 }}>
+            Total Points: {content.points}
+          </Typography>
+        )}
+      </Box>
+    );
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <ClassHeader>
-        <Typography variant="h4">IT 212 OBJECT-ORIENTED PROGRAMMING</Typography>
-        <Typography variant="subtitle1">2A-1 | TTH 9:30AM-12:00NN EB 309</Typography>
-      </ClassHeader>
-
-      <StyledTabs value={currentTab} onChange={handleTabChange}>
-        <Tab icon={<GridViewIcon />} label="Activities" />
-        <Tab icon={<PeopleIcon />} label="People" />
-        <Tab icon={<CalendarMonthIcon />} label="Calendar" />
-      </StyledTabs>
-
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Sidebar - Only show in Activities tab */}
-        {currentTab === 0 && (
-          <SidebarDrawer>
-            {modules.map((module) => (
-              <ModuleContainer key={module.id}>
-                <ModuleHeader>
-                  <Typography variant="subtitle1">{module.title}</Typography>
-                </ModuleHeader>
-                <Box>
-                  {module.resources.map((resource) => (
-                    <ResourceButton 
-                      key={resource.id}
-                      startIcon={
-                        resource.type === 'lesson' ? <ArticleIcon /> :
-                        resource.type === 'quiz' ? <QuizIcon /> :
-                        resource.type === 'assignment' ? <AssignmentIcon /> :
-                        <FolderIcon />
-                      }
+    <Box sx={{ display: 'flex', gap: 3 }}>
+      {/* Modules Sidebar */}
+      <Box sx={{ width: 320, flexShrink: 0 }}>
+        {modules && modules.length > 0 ? (
+          modules.map((module) => (
+            <ModuleContainer key={module.id}>
+              <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 500, mb: 2 }}>
+                {module.title}
+              </Typography>
+              <List sx={{ py: 0 }}>
+                {module.contents && module.contents.length > 0 ? (
+                  module.contents.map((content) => (
+                    <ContentListItem
+                      key={content.id}
+                      button
+                      selected={selectedContent?.id === content.id}
+                      onClick={() => setSelectedContent(content)}
                     >
-                      {resource.title}
-                    </ResourceButton>
-                  ))}
-                </Box>
-              </ModuleContainer>
-            ))}
-          </SidebarDrawer>
-        )}
-
-        {/* Main content area */}
-        <Box 
-          sx={{ 
-            flex: 1, 
-            backgroundColor: '#111111', 
-            p: 3,
-            overflowY: 'auto',
-            '&::-webkit-scrollbar': {
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: '#111111',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: '#333333',
-              borderRadius: '4px',
-              '&:hover': {
-                backgroundColor: '#444444',
-              },
-            },
-          }}
-        >
-          <TabPanel value={currentTab} index={0}>
-            <Box sx={{ mb: 3 }}>
-              {modules.map((module) => (
-                <Box
-                  key={module.id}
-                  sx={{
-                    backgroundColor: '#222222',
-                    borderRadius: 1,
-                    mb: 2,
-                    overflow: 'hidden'
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      p: 2,
-                      backgroundColor: '#333333'
-                    }}
-                  >
-                    <Typography variant="h6" sx={{ color: 'white' }}>
-                      {module.title}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ p: 2 }}>
-                    {module.resources.map((resource) => (
-                      <Button
-                        key={resource.id}
-                        fullWidth
-                        onClick={() => handleResourceClick(resource)}
+                      <ListItemText
+                        primary={content.title}
+                        secondary={
+                          <Typography variant="body2" sx={{ color: '#999' }}>
+                            {content.type === 'task' ? '📝 Performance Task' :
+                             content.type === 'material' ? '📚 Learning Material' : '📋 Quiz'}
+                            {content.type === 'task' && content.due_date && 
+                              ` • Due: ${new Date(content.due_date).toLocaleDateString()}`}
+                          </Typography>
+                        }
                         sx={{
-                          justifyContent: 'flex-start',
-                          textAlign: 'left',
-                          mb: 1,
-                          p: 2,
-                          backgroundColor: '#333333',
-                          color: 'white',
-                          '&:hover': {
-                            backgroundColor: '#444444'
-                          }
+                          '& .MuiListItemText-primary': { color: 'white' }
                         }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                          {resource.type === 'lesson' && <ArticleIcon sx={{ mr: 2 }} />}
-                          {resource.type === 'task' && <AssignmentIcon sx={{ mr: 2 }} />}
-                          {resource.type === 'quiz' && <QuizIcon sx={{ mr: 2 }} />}
-                          {resource.type === 'resource' && <FolderIcon sx={{ mr: 2 }} />}
-                          <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="subtitle1">
-                              {resource.title}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#999999' }}>
-                              {resource.type.charAt(0).toUpperCase() + resource.type.slice(1)} • Due: {resource.deadline}
-                            </Typography>
-                          </Box>
-                          {(resource.type === 'task' || resource.type === 'quiz') && (
-                            <Box
-                              sx={{
-                                ml: 2,
-                                px: 2,
-                                py: 0.5,
-                                borderRadius: 1,
-                                backgroundColor: resource.submissionStatus === 'submitted' ? '#4CAF50' : '#FFC600',
-                                color: resource.submissionStatus === 'submitted' ? 'white' : 'black',
-                              }}
-                            >
-                              {resource.submissionStatus === 'submitted' ? 'Submitted' : 'Pending'}
-                            </Box>
-                          )}
-                        </Box>
-                      </Button>
-                    ))}
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </TabPanel>
-
-          {/* People Tab */}
-          <TabPanel value={currentTab} index={1}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ color: '#FFC600', mb: 2 }}>
-                  Teacher
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-                  <Avatar>R</Avatar>
-                  <Typography>Reyna</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="h6" sx={{ color: '#FFC600', mb: 2 }}>
-                  Students
-                </Typography>
-                {/* Student list will be added here */}
-              </Grid>
-            </Grid>
-          </TabPanel>
-
-          {/* Calendar Tab */}
-          <TabPanel value={currentTab} index={2}>
-            <Box sx={{ p: 3 }}>
-              <CalendarGrid>
-                <Box className="calendar-header">
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="h6" sx={{ color: '#FFC600' }}>
-                      {currentDate.format('MMMM YYYY')}
-                    </Typography>
-                    <Box>
-                      <Button 
-                        onClick={() => setCurrentDate(dayjs())}
-                        sx={{ color: 'white' }}
-                      >
-                        Today
-                      </Button>
-                      <Button 
-                        onClick={() => setCurrentDate(prev => prev.subtract(1, 'month'))}
-                        sx={{ color: 'white' }}
-                      >
-                        Previous
-                      </Button>
-                      <Button 
-                        onClick={() => setCurrentDate(prev => prev.add(1, 'month'))}
-                        sx={{ color: 'white' }}
-                      >
-                        Next
-                      </Button>
-                    </Box>
-                  </Box>
-                  <Grid container sx={{ mt: 2 }}>
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                      <Grid item xs key={day} sx={{ textAlign: 'center', color: '#999' }}>
-                        {day}
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Box>
-                <Box className="calendar-body">
-                  {generateCalendarDays().map((day, index) => (
-                    <Box
-                      key={index}
-                      className={`calendar-day ${
-                        day.isSame(dayjs(), 'day') ? 'today' : ''
-                      } ${
-                        day.isSame(currentDate, 'month') ? '' : 'different-month'
-                      }`}
-                    >
-                      <Typography sx={{ color: '#999', mb: 1 }}>
-                        {day.format('D')}
-                      </Typography>
-                      {getEventsForDay(day).map(event => (
-                        <CalendarEvent key={event.id}>
-                          {event.title}
-                        </CalendarEvent>
-                      ))}
-                    </Box>
-                  ))}
-                </Box>
-              </CalendarGrid>
-
-              <TimelineContainer>
-                <Box className="timeline-header">
-                  <Typography variant="h6" sx={{ color: '#FFC600' }}>
-                    Timeline
+                      />
+                    </ContentListItem>
+                  ))
+                ) : (
+                  <Typography variant="body2" sx={{ color: '#666', p: 1 }}>
+                    No content available
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#999' }}>
-                    {currentDate.format('MMMM YYYY')}
-                  </Typography>
-                </Box>
-                {events.map((event) => (
-                  <TimelineItem key={event.id}>
-                    <Typography variant="subtitle1" sx={{ color: '#FFC600', mb: 1 }}>
-                      {event.title}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#999' }}>
-                      {dayjs(event.startDate).format('MMM D')} - {dayjs(event.endDate).format('MMM D, YYYY')}
-                    </Typography>
-                    <Typography variant="caption" sx={{ 
-                      color: '#666',
-                      display: 'inline-block',
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      marginTop: '8px'
-                    }}>
-                      {event.type}
-                    </Typography>
-                  </TimelineItem>
-                ))}
-              </TimelineContainer>
-            </Box>
-          </TabPanel>
-        </Box>
+                )}
+              </List>
+            </ModuleContainer>
+          ))
+        ) : (
+          <Typography variant="body2" sx={{ color: '#666' }}>
+            No modules available
+          </Typography>
+        )}
       </Box>
 
-      {selectedResource && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            right: 0,
-            width: '50%',
-            height: '100vh',
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.3)',
-            transform: selectedResource ? 'translateX(0)' : 'translateX(100%)',
-            transition: 'transform 0.3s ease-in-out',
-            zIndex: 1200,
-            overflow: 'auto'
-          }}
-        >
-          <StudentResourceView
-            resource={selectedResource}
-            onClose={() => setSelectedResource(null)}
-          />
-        </Box>
-      )}
+      {/* Content Area */}
+      <Box sx={{ flex: 1 }}>
+        {selectedContent ? (
+          <ContentArea>
+            <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
+              {selectedContent.title}
+            </Typography>
+
+            <Typography sx={{ color: '#999', mb: 3 }}>
+              {selectedContent.description}
+            </Typography>
+
+            {selectedContent.type === 'task' && (
+              <Box>
+                <Typography variant="subtitle1" sx={{ color: 'white', mb: 2 }}>
+                  Due Date: {new Date(selectedContent.due_date).toLocaleString()}
+                </Typography>
+                <Typography variant="subtitle1" sx={{ color: 'white', mb: 2 }}>
+                  Points: {selectedContent.points}
+                </Typography>
+                {renderContentActions(selectedContent)}
+              </Box>
+            )}
+
+            {(selectedContent.type === 'material' || selectedContent.type === 'quiz') && 
+              renderContentActions(selectedContent)}
+          </ContentArea>
+        ) : (
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            height: 400,
+            color: '#666',
+            bgcolor: '#222222',
+            borderRadius: 1
+          }}>
+            Select a content item to view details
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+const StudentsTab = ({ classId }) => {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const data = await studentApi.getClassStudents(classId);
+        setStudents(data);
+      } catch (err) {
+        console.error('Failed to fetch students:', err);
+        setError('Failed to load students');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, [classId]);
+
+  if (loading) return <CircularProgress />;
+  if (error) return <Alert severity="error">{error}</Alert>;
+
+  return (
+    <TableContainer 
+      component={Paper} 
+      sx={{ 
+        backgroundColor: '#222222',
+        '& .MuiTableCell-root': {
+          color: 'white',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        }
+      }}
+    >
+      <Table>
+        <TableHead>
+          <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
+            <TableCell>Username</TableCell>
+            <TableCell>Status</TableCell>
+            <TableCell>Enrolled Date</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {students.map((student) => (
+            <TableRow 
+              key={student.id}
+              sx={{ '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' } }}
+            >
+              <TableCell>{student.username}</TableCell>
+              <TableCell>
+                <Box
+                  sx={{
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    display: 'inline-block'
+                  }}
+                >
+                  {student.status}
+                </Box>
+              </TableCell>
+              <TableCell>
+                {new Date(student.enrolled_at).toLocaleDateString()}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+};
+
+// Update the main return statement in StudentClassView
+function StudentClassView() {
+  const { id } = useParams();
+  const [tab, setTab] = useState(0);
+  const [classData, setClassData] = useState(null);
+  const [modules, setModules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchClassData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [details, classModules] = await Promise.all([
+          studentApi.getClassDetails(id),
+          studentApi.getClassModules(id)
+        ]);
+
+        if (isMounted) {
+          setClassData(details);
+          setModules(classModules);
+        }
+      } catch (err) {
+        console.error('Error fetching class data:', err);
+        if (isMounted) {
+          setError(err.message);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchClassData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ mt: 2 }}>
+        {error}
+      </Alert>
+    );
+  }
+
+  return (
+    <Box>
+      {/* Header with dark background */}
+      <Box sx={{ bgcolor: '#222222', p: 3, mb: 3 }}>
+        <Typography variant="h4" sx={{ color: 'white' }}>
+          {classData?.name}
+        </Typography>
+        <Typography variant="subtitle1" sx={{ color: '#999' }}>
+          Class Code: {classData?.code}
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#999', mt: 1 }}>
+          {classData?.schedule}
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#999', mt: 1 }}>
+          Teacher: {classData?.teacher_name}
+        </Typography>
+      </Box>
+
+      {/* Tabs */}
+      <StyledTabs value={tab} onChange={(e, newValue) => setTab(newValue)}>
+        <Tab label="Activities" />
+        <Tab label="Students" />
+      </StyledTabs>
+
+      {/* Tab Content */}
+      <Box sx={{ mt: 3 }}>
+        {tab === 0 && <ActivitiesTab classId={id} modules={modules} />}
+        {tab === 1 && <StudentsTab classId={id} />}
+      </Box>
     </Box>
   );
 }
 
-export default ClassView;
+export default StudentClassView;

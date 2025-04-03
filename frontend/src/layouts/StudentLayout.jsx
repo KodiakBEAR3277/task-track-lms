@@ -26,6 +26,7 @@ function StudentLayout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isClassView = location.pathname.includes('/classes/');
   
   const user = JSON.parse(localStorage.getItem('user'));
 
@@ -125,79 +126,80 @@ function StudentLayout() {
   );
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      {/* Mobile menu button */}
-      {isMobile && (
-        <IconButton
-          onClick={() => setMobileOpen(!mobileOpen)}
-          sx={{
-            position: 'fixed',
-            top: 16,
-            left: 16,
-            zIndex: theme.zIndex.drawer + 2,
-            bgcolor: '#333333',
-            color: 'white',
-            '&:hover': {
-              bgcolor: '#444444',
-            }
-          }}
-        >
-          <MenuIcon />
-        </IconButton>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#111111' }}>
+      {/* Only show sidebar if not in class view */}
+      {!isClassView && (
+        <>
+          {/* Mobile menu button */}
+          {isMobile && (
+            <IconButton
+              onClick={() => setMobileOpen(!mobileOpen)}
+              sx={{
+                position: 'fixed',
+                top: 16,
+                left: 16,
+                zIndex: theme.zIndex.drawer + 2,
+                bgcolor: '#333333',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: '#444444',
+                }
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+
+          {/* Mobile drawer */}
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={() => setMobileOpen(false)}
+            ModalProps={{ keepMounted: true }}
+            sx={{
+              display: { xs: 'block', sm: 'none' },
+              '& .MuiDrawer-paper': {
+                width: DRAWER_WIDTH,
+                bgcolor: '#222222',
+                borderRight: 'none',
+                overflow: 'hidden', // Prevent drawer paper from scrolling
+              },
+            }}
+          >
+            {drawer}
+          </Drawer>
+
+          {/* Desktop drawer */}
+          <Drawer
+            variant="permanent"
+            sx={{
+              display: { xs: 'none', sm: 'block' },
+              width: DRAWER_WIDTH,
+              flexShrink: 0,
+              '& .MuiDrawer-paper': {
+                width: DRAWER_WIDTH,
+                bgcolor: '#222222',
+                borderRight: 'none',
+                overflow: 'hidden', // Prevent drawer paper from scrolling
+              },
+            }}
+            open
+          >
+            {drawer}
+          </Drawer>
+        </>
       )}
-
-      {/* Mobile drawer */}
-      <Drawer
-        variant="temporary"
-        open={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        ModalProps={{ keepMounted: true }}
-        sx={{
-          display: { xs: 'block', sm: 'none' },
-          '& .MuiDrawer-paper': {
-            width: DRAWER_WIDTH,
-            bgcolor: '#222222',
-            borderRight: 'none',
-            overflow: 'hidden', // Prevent drawer paper from scrolling
-          },
-        }}
-      >
-        {drawer}
-      </Drawer>
-
-      {/* Desktop drawer */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          display: { xs: 'none', sm: 'block' },
-          width: DRAWER_WIDTH,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: DRAWER_WIDTH,
-            bgcolor: '#222222',
-            borderRight: 'none',
-            overflow: 'hidden', // Prevent drawer paper from scrolling
-          },
-        }}
-        open
-      >
-        {drawer}
-      </Drawer>
 
       {/* Main content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          bgcolor: '#111111',
-          overflow: 'auto',
-          position: 'relative',
-          width: { xs: '100%', sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+          p: 3,
+          width: isClassView ? '100%' : `calc(100% - ${DRAWER_WIDTH}px)`,
         }}
       >
-        <Box sx={{ p: 3 }}>
-          <Outlet />
-        </Box>
+        <Outlet />
       </Box>
     </Box>
   );

@@ -22,11 +22,12 @@ import { styled } from '@mui/material/styles';
 import studentApi from '../../services/studentApi';
 import JoinClassDialog from '../../components/JoinClassDialog';
 
-// Update ClassCard styled component
+// Update ClassCard styled component to match TeacherDashboard
 const ClassCard = styled(Card)(({ theme }) => ({
   backgroundColor: '#222222',
   color: 'white',
   padding: theme.spacing(3),
+  borderRadius: '8px',
   height: '100%',
   cursor: 'pointer',
   transition: 'transform 0.2s, background-color 0.2s',
@@ -36,20 +37,21 @@ const ClassCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-const ClassCodeInput = styled('div')({
-  display: 'flex',
-  gap: '16px',
-  marginBottom: '32px',
-  '& .MuiTextField-root': {
-    backgroundColor: '#222222',
-    borderRadius: '4px',
-    '& input': {
-      color: 'white',
-    }
-  }
+// Add ClassCode styled component from TeacherDashboard
+const ClassCode = styled(Typography)({
+  backgroundColor: '#333333',
+  color: '#FFC600',
+  padding: '4px 8px',
+  borderRadius: '4px',
+  display: 'inline-block',
+  fontSize: '0.875rem',
+  fontWeight: 500,
 });
 
-// Add error boundary component
+// Remove ClassCodeInput since it's not used in the updated version
+// (It seems to be a leftover from a previous implementation)
+
+// Add error boundary component (unchanged)
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -96,8 +98,6 @@ function StudentDashboard() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [classCode, setClassCode] = useState('');
-  const [joinLoading, setJoinLoading] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(false);
@@ -111,12 +111,13 @@ function StudentDashboard() {
   const fetchClasses = async () => {
     try {
       setLoading(true);
-      const data = await studentApi.getEnrolledClasses();
-      setClasses(data);
       setError(null);
+      const data = await studentApi.getEnrolledClasses();
+      console.log('Fetched classes data:', data);
+      setClasses(Array.isArray(data) ? data : []);
     } catch (err) {
+      console.error('Error fetching classes:', err);
       setError('Failed to load classes');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -124,8 +125,13 @@ function StudentDashboard() {
 
   const handleJoinClass = async (classCode) => {
     try {
-      await studentApi.joinClass(classCode);
-      await fetchClasses(); // Refresh class list
+      const result = await studentApi.joinClass(classCode);
+      console.log('Join class result:', result);
+      
+      // Immediately fetch updated classes after joining
+      await fetchClasses();
+      
+      setIsJoinDialogOpen(false);
       setError(null);
     } catch (err) {
       console.error('Failed to join class:', err);
@@ -137,12 +143,24 @@ function StudentDashboard() {
     if (!selectedClass) return;
     
     try {
+      setError(null);
+      setLoading(true);
+      
       await studentApi.leaveClass(selectedClass.id);
+      
+      // Refresh the class list
       await fetchClasses();
+      
+      // Close dialogs and reset state
       setConfirmDialog(false);
       setSelectedClass(null);
+      setMenuAnchor(null);
+      
     } catch (err) {
-      setError('Failed to leave class');
+      console.error('Leave class error:', err);
+      setError(err.message || 'Failed to leave class');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -184,27 +202,60 @@ function StudentDashboard() {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
-        {classes.map((classItem) => (
-          <Grid item xs={12} sm={6} md={4} key={classItem.id}>
-            <ClassCard 
-              onClick={() => navigate(`/student/classes/${classItem.id}`)}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="overline" sx={{ color: '#FFC600' }}>
-                  {classItem.code}
+      {classes.length === 0 ? (
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 4, 
+          color: '#666',
+          bgcolor: '#222222',
+          borderRadius: 1
+        }}>
+          <Typography>
+            You haven't joined any classes yet.
+          </Typography>
+        </Box>
+      ) : (
+        <Grid container spacing={3}>
+          {classes.map((classItem) => (
+            <Grid item xs={12} sm={6} md={4} key={classItem.id}>
+              <ClassCard 
+                onClick={() => navigate(`/student/classes/${classItem.id}`)}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <ClassCode>{classItem.code}</ClassCode>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedClass(classItem);
+                      setMenuAnchor(e.currentTarget);
+                    }}
+                    sx={{ color: 'white' }}
+                  >
+                    <MoreVertIcon />
+                  </IconButton>
+                </Box>
+                <Typography variant="h6" sx={{ mb: 1 }}>
+                  {classItem.name}
                 </Typography>
-              </Box>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                {classItem.name}
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#999' }}>
-                {classItem.schedule}
-              </Typography>
-            </ClassCard>
-          </Grid>
-        ))}
-      </Grid>
+                {classItem.schedule && (
+                  <Typography variant="body2" sx={{ color: '#999', mb: 1 }}>
+                    {classItem.schedule}
+                  </Typography>
+                )}
+                <Typography variant="body2" sx={{ color: '#999', mt: 2 }}>
+                  Teacher: {classItem.teacher_name}
+                </Typography>
+                {classItem.student_count > 0 && (
+                  <Typography variant="body2" sx={{ color: '#999', mt: 1 }}>
+                    {classItem.student_count} Student{classItem.student_count !== 1 ? 's' : ''}
+                  </Typography>
+                )}
+              </ClassCard>
+            </Grid>
+          ))}
+        </Grid>
+      )}
 
       <JoinClassDialog
         open={isJoinDialogOpen}
@@ -245,7 +296,7 @@ function StudentDashboard() {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmDialog(false)}>
+          <Button onClick={() => setConfirmDialog(false)} sx={{ color: '#999' }}>
             Cancel
           </Button>
           <Button 

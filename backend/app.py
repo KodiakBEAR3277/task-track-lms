@@ -15,7 +15,14 @@ from werkzeug.utils import secure_filename
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:5173"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 
 # MySQL configurations
 app.config.update(
@@ -207,70 +214,37 @@ def admin_dashboard(current_user):
     return jsonify({'message': 'Admin dashboard data'})
 
 @app.route('/api/student/classes', methods=['GET'])
-@token_required
+@role_required(['student'])
 def get_enrolled_classes(current_user):
     try:
         cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT c.* FROM classes c
+        
+        cur.execute(
+            """
+            SELECT 
+                c.*,
+                e.status as enrollment_status,
+                e.enrolled_at,
+                u.username as teacher_name,
+                COUNT(DISTINCT e2.student_id) as student_count
+            FROM classes c
             JOIN enrollments e ON c.id = e.class_id
-            WHERE e.student_id = %s AND e.status = 'enrolled'
-        """, (current_user['user_id'],))
+            JOIN users u ON c.teacher_id = u.id
+            LEFT JOIN enrollments e2 ON c.id = e2.class_id
+            WHERE e.student_id = %s 
+            AND e.status = 'enrolled'
+            AND c.status = 'active'
+            GROUP BY c.id, e.status, e.enrolled_at, u.username
+            ORDER BY e.enrolled_at DESC
+            """, (current_user['user_id'],))
+        
         classes = cur.fetchall()
-        cur.close()
+        print(f"Found {len(classes)} enrolled classes for student {current_user['user_id']}")
         return jsonify(classes), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/student/classes/join', methods=['POST'])
-@role_required(['student'])
-def join_class(current_user):
-    try:
-        data = request.get_json()
-        class_code = data.get('classCode')
-        
-        if not class_code:
-            return jsonify({"error": "Class code is required"}), 400
-            
-        cur = mysql.connection.cursor()
-        
-        # Check if class exists
-        cur.execute("""
-            SELECT id, name FROM classes 
-            WHERE code = %s AND status = 'active'
-        """, (class_code,))
-        
-        class_data = cur.fetchone()
-        
-        if not class_data:
-            return jsonify({"error": "Invalid class code"}), 404
-            
-        # Check if already enrolled
-        cur.execute("""
-            SELECT 1 FROM enrollments 
-            WHERE student_id = %s AND class_id = %s
-        """, (current_user['user_id'], class_data['id']))
-        
-        if cur.fetchone():
-            return jsonify({"error": "Already enrolled in this class"}), 400
-            
-        # Enroll student
-        cur.execute("""
-            INSERT INTO enrollments (student_id, class_id, status, enrolled_at)
-            VALUES (%s, %s, 'active', NOW())
-        """, (current_user['user_id'], class_data['id']))
-        
-        mysql.connection.commit()
-        cur.close()
-        
-        return jsonify({
-            "message": "Successfully joined class",
-            "class": class_data
-        }), 200
         
     except Exception as e:
-        print(f"Error joining class: {str(e)}")
-        return jsonify({"error": "Failed to join class"}), 500
+        print(f"Error fetching enrolled classes: {str(e)}")
+        return jsonify({'error': 'Failed to fetch enrolled classes'}), 500
 
 def generate_class_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -743,6 +717,197 @@ def get_module_content(current_user, class_id, module_id, content_id):
     except Exception as e:
         print(f"Error fetching module content: {str(e)}")
         return jsonify({"error": "Failed to fetch content"}), 500
+
+@app.route('/api/student/classes/<int:class_id>', methods=['GET'])
+@role_required(['student'])
+def get_student_class_details(current_user, class_id):
+    try:
+        cur = mysql.connection.cursor()
+        
+        # Verify enrollment
+        cur.execute("""
+            SELECT 1 FROM enrollments 
+            WHERE student_id = %s AND class_id = %s 
+            AND status = 'enrolled'
+        """, (current_user['user_id'], class_id))
+        
+        if not cur.fetchone():
+            return jsonify({"error": "Not enrolled in this class"}), 403
+            
+        # Get class details with teacher info
+        cur.execute("""
+            SELECT 
+                c.*,
+                u.username as teacher_name,
+                COUNT(DISTINCT e.student_id) as student_count
+            FROM classes c
+            JOIN users u ON c.teacher_id = u.id
+            LEFT JOIN enrollments e ON c.id = e.class_id
+            WHERE c.id = %s AND c.status = 'active'
+            GROUP BY c.id, u.username
+        """, (class_id,))
+        
+        class_data = cur.fetchone()
+        if not class_data:
+            return jsonify({"error": "Class not found"}), 404
+            
+        cur.close()
+        return jsonify(class_data), 200
+        
+    except Exception as e:
+        print(f"Error getting class details: {str(e)}")
+        return jsonify({"error": "Failed to get class details"}), 500
+
+@app.route('/api/student/classes/<int:class_id>/modules', methods=['GET'])
+@role_required(['student'])
+def get_student_class_modules(current_user, class_id):
+    try:
+        cur = mysql.connection.cursor()
+        
+        # Verify enrollment
+        cur.execute("""
+            SELECT 1 FROM enrollments 
+            WHERE student_id = %s AND class_id = %s 
+            AND status = 'enrolled'
+        """, (current_user['user_id'], class_id))
+        
+        if not cur.fetchone():
+            return jsonify({"error": "Not enrolled in this class"}), 403
+            
+        # Get modules and their contents in a single query
+        cur.execute("""
+            SELECT 
+                m.id as module_id,
+                m.title as module_title,
+                m.content as module_content,
+                m.order_index,
+                mc.id as content_id,
+                mc.title as content_title,
+                mc.description as content_description,
+                mc.type as content_type,
+                mc.due_date,
+                mc.points,
+                mc.link_url,
+                mc.file_url
+            FROM modules m
+            LEFT JOIN module_contents mc ON m.id = mc.module_id
+            WHERE m.class_id = %s
+            ORDER BY m.order_index, m.created_at, mc.created_at
+        """, (class_id,))
+        
+        rows = cur.fetchall()
+        cur.close()
+        
+        # Organize data into modules with their contents
+        modules = {}
+        for row in rows:
+            module_id = row['module_id']
+            
+            if module_id not in modules:
+                modules[module_id] = {
+                    'id': module_id,
+                    'title': row['module_title'],
+                    'content': row['module_content'],
+                    'order_index': row['order_index'],
+                    'contents': []
+                }
+            
+            if row['content_id']:  # Only add content if it exists
+                modules[module_id]['contents'].append({
+                    'id': row['content_id'],
+                    'title': row['content_title'],
+                    'description': row['content_description'],
+                    'type': row['content_type'],
+                    'due_date': row['due_date'],
+                    'points': row['points'],
+                    'link_url': row['link_url'],
+                    'file_url': row['file_url']
+                })
+        
+        # Convert to list and sort by order_index
+        module_list = list(modules.values())
+        module_list.sort(key=lambda x: x['order_index'])
+        
+        print(f"Returning {len(module_list)} modules")
+        return jsonify(module_list), 200
+        
+    except Exception as e:
+        print(f"Error getting class modules: {str(e)}")
+        return jsonify({"error": "Failed to get class modules"}), 500
+
+@app.route('/api/student/classes/<int:class_id>/students', methods=['GET'])
+@role_required(['student'])
+def get_student_class_students(current_user, class_id):
+    try:
+        cur = mysql.connection.cursor()
+        
+        # Verify enrollment
+        cur.execute("""
+            SELECT 1 FROM enrollments 
+            WHERE student_id = %s AND class_id = %s 
+            AND status = 'enrolled'
+        """, (current_user['user_id'], class_id))
+        
+        if not cur.fetchone():
+            return jsonify({"error": "Not enrolled in this class"}), 403
+            
+        # Get enrolled students
+        cur.execute("""
+            SELECT 
+                u.id,
+                u.username,
+                e.status,
+                e.enrolled_at
+            FROM users u
+            JOIN enrollments e ON u.id = e.student_id
+            WHERE e.class_id = %s AND e.status = 'enrolled'
+            ORDER BY u.username
+        """, (class_id,))
+        
+        students = cur.fetchall()
+        cur.close()
+        
+        return jsonify(students), 200
+        
+    except Exception as e:
+        print(f"Error getting class students: {str(e)}")
+        return jsonify({"error": "Failed to get class students"}), 500
+
+@app.route('/api/student/classes/<int:class_id>', methods=['DELETE'])
+@role_required(['student'])
+def leave_class(current_user, class_id):
+    try:
+        cur = mysql.connection.cursor()
+        
+        # Check if student is enrolled
+        cur.execute("""
+            SELECT student_id, class_id 
+            FROM enrollments 
+            WHERE student_id = %s AND class_id = %s 
+            AND status = 'enrolled'
+        """, (current_user['user_id'], class_id))
+        
+        enrollment = cur.fetchone()
+        if not enrollment:
+            return jsonify({"error": "Not enrolled in this class"}), 404
+            
+        # Update enrollment status to 'dropped'
+        cur.execute("""
+            UPDATE enrollments 
+            SET status = 'dropped'
+            WHERE student_id = %s AND class_id = %s
+        """, (current_user['user_id'], class_id))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        print(f"Student {current_user['user_id']} left class {class_id}")
+        return jsonify({"message": "Successfully left the class"}), 200
+        
+    except Exception as e:
+        print(f"Error leaving class: {str(e)}")
+        mysql.connection.rollback()
+        return jsonify({"error": f"Failed to leave class: {str(e)}"}), 500
 
 @app.errorhandler(Exception)
 def handle_error(error):

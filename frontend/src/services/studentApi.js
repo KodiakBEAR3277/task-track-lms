@@ -20,8 +20,10 @@ api.interceptors.request.use((config) => {
 const studentApi = {
   getEnrolledClasses: async () => {
     try {
+      console.log('Fetching enrolled classes...');
       const response = await api.get('/student/classes');
-      return response.data;
+      console.log('Raw response:', response);
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.error('Failed to fetch enrolled classes:', error);
       throw error.response?.data || error.message;
@@ -43,13 +45,62 @@ const studentApi = {
       throw new Error('Class ID is required');
     }
     try {
+      console.log('Attempting to leave class:', classId);
       const response = await api.delete(`/student/classes/${classId}`);
+      console.log('Leave class response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to leave class:', error);
-      throw error.response?.data || error.message;
+      if (error.response?.status === 404) {
+        throw new Error('Not enrolled in this class');
+      }
+      if (error.response?.status === 500) {
+        throw new Error(error.response.data.error || 'Server error while leaving class');
+      }
+      throw new Error(error.response?.data?.error || 'Failed to leave class');
     }
-  }
+  },
+
+  getClassDetails: async (classId) => {
+    try {
+      console.log('Fetching class details for:', classId);
+      const response = await api.get(`/student/classes/${classId}`);
+      console.log('Class details response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch class details:', error);
+      if (error.response?.status === 403) {
+        throw new Error('You are not enrolled in this class');
+      }
+      throw new Error(error.response?.data?.error || 'Failed to load class details');
+    }
+  },
+
+  getClassModules: async (classId) => {
+    try {
+      console.log('Fetching modules for class:', classId);
+      const response = await api.get(`/student/classes/${classId}/modules`);
+      console.log('Raw modules response:', response);
+      console.log('Modules data:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch class modules:', error);
+      if (error.response?.status === 403) {
+        throw new Error('You are not enrolled in this class');
+      }
+      throw new Error(error.response?.data?.error || 'Failed to load class modules');
+    }
+  },
+
+  getClassStudents: async (classId) => {
+    try {
+      const response = await api.get(`/student/classes/${classId}/students`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch class students:', error);
+      throw new Error(error.response?.data?.error || 'Failed to load students');
+    }
+  },
 };
 
 export default studentApi;

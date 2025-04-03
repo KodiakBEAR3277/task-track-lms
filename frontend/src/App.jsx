@@ -18,6 +18,7 @@ import Signup from './pages/public/Signup';
 import StudentDashboard from './pages/student/Dashboard';
 import StudentCalendar from './pages/student/Calendar';
 import ClassView from './pages/student/ClassView';
+import StudentClassView from './pages/student/ClassView';
 
 // Teacher Pages
 import TeacherDashboard from './pages/teacher/Dashboard';
@@ -51,6 +52,7 @@ function App() {
             <Route path="dashboard" element={<StudentDashboard />} />
             <Route path="calendar" element={<StudentCalendar />} />
             <Route path="class/:id" element={<ClassView />} />
+            <Route path="classes/:id" element={<StudentClassView />} />
           </Route>
           
           {/* Teacher Routes */}
