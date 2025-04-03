@@ -20,16 +20,21 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useNavigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import studentApi from '../../services/studentApi';
+import JoinClassDialog from '../../components/JoinClassDialog';
 
-// Keep only these styled components
-const ClassCard = styled(Card)({
+// Update ClassCard styled component
+const ClassCard = styled(Card)(({ theme }) => ({
   backgroundColor: '#222222',
   color: 'white',
-  padding: '20px',
+  padding: theme.spacing(3),
+  height: '100%',
+  cursor: 'pointer',
+  transition: 'transform 0.2s, background-color 0.2s',
   '&:hover': {
     backgroundColor: '#2a2a2a',
+    transform: 'translateY(-4px)'
   }
-});
+}));
 
 const ClassCodeInput = styled('div')({
   display: 'flex',
@@ -96,6 +101,7 @@ function StudentDashboard() {
   const [selectedClass, setSelectedClass] = useState(null);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(false);
+  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
 
   // Fetch enrolled classes
   useEffect(() => {
@@ -116,19 +122,14 @@ function StudentDashboard() {
     }
   };
 
-  const handleJoinClass = async () => {
-    if (!classCode.trim()) return;
-    
+  const handleJoinClass = async (classCode) => {
     try {
-      setJoinLoading(true);
       await studentApi.joinClass(classCode);
-      await fetchClasses();
-      setClassCode('');
+      await fetchClasses(); // Refresh class list
       setError(null);
     } catch (err) {
-      setError('Invalid class code or already enrolled');
-    } finally {
-      setJoinLoading(false);
+      console.error('Failed to join class:', err);
+      throw new Error(err.error || 'Failed to join class');
     }
   };
 
@@ -155,9 +156,27 @@ function StudentDashboard() {
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ mb: 4, color: 'white' }}>
-        My Classes
-      </Typography>
+      <Box sx={{ 
+        mb: 4, 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center' 
+      }}>
+        <Typography variant="h4" sx={{ color: 'white' }}>
+          My Classes
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => setIsJoinDialogOpen(true)}
+          sx={{
+            bgcolor: '#FFC600',
+            color: 'black',
+            '&:hover': { bgcolor: '#FFD700' }
+          }}
+        >
+          Join Class
+        </Button>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -165,56 +184,33 @@ function StudentDashboard() {
         </Alert>
       )}
 
-      <ClassCodeInput>
-        <TextField
-          fullWidth
-          placeholder="Enter class code"
-          value={classCode}
-          onChange={(e) => setClassCode(e.target.value)}
-          disabled={joinLoading}
-        />
-        <Button
-          variant="contained"
-          onClick={handleJoinClass}
-          disabled={joinLoading || !classCode.trim()}
-          sx={{
-            bgcolor: '#FFC600',
-            color: '#000',
-            '&:hover': { bgcolor: '#FFD700' }
-          }}
-        >
-          {joinLoading ? <CircularProgress size={24} /> : 'Join Class'}
-        </Button>
-      </ClassCodeInput>
-
       <Grid container spacing={3}>
         {classes.map((classItem) => (
           <Grid item xs={12} sm={6} md={4} key={classItem.id}>
-            <ClassCard>
+            <ClassCard 
+              onClick={() => navigate(`/student/classes/${classItem.id}`)}
+            >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="overline" sx={{ color: '#FFC600' }}>
                   {classItem.code}
                 </Typography>
-                <IconButton
-                  onClick={(e) => {
-                    setMenuAnchor(e.currentTarget);
-                    setSelectedClass(classItem);
-                  }}
-                  sx={{ color: 'white' }}
-                >
-                  <MoreVertIcon />
-                </IconButton>
               </Box>
               <Typography variant="h6" sx={{ mb: 1 }}>
                 {classItem.name}
               </Typography>
               <Typography variant="body2" sx={{ color: '#999' }}>
-                {classItem.teacher}
+                {classItem.schedule}
               </Typography>
             </ClassCard>
           </Grid>
         ))}
       </Grid>
+
+      <JoinClassDialog
+        open={isJoinDialogOpen}
+        onClose={() => setIsJoinDialogOpen(false)}
+        onJoin={handleJoinClass}
+      />
 
       <Menu
         anchorEl={menuAnchor}

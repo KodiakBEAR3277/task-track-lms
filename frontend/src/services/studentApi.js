@@ -23,15 +23,12 @@ const studentApi = {
       const response = await api.get('/student/classes');
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch classes:', error);
+      console.error('Failed to fetch enrolled classes:', error);
       throw error.response?.data || error.message;
     }
   },
 
   joinClass: async (classCode) => {
-    if (!classCode?.trim()) {
-      throw new Error('Class code is required');
-    }
     try {
       const response = await api.post('/student/classes/join', { classCode });
       return response.data;

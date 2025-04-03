@@ -21,7 +21,6 @@ import ClassView from './pages/student/ClassView';
 
 // Teacher Pages
 import TeacherDashboard from './pages/teacher/Dashboard';
-import TeacherClasses from './pages/teacher/Classes';
 import TeacherSchedule from './pages/teacher/Schedule';
 import TeacherClassView from './pages/teacher/ClassView';  // Add this line
 
@@ -61,8 +60,14 @@ function App() {
             </ProtectedRoute>
           }>
             <Route path="dashboard" element={<TeacherDashboard />} />
-            <Route path="classes" element={<TeacherClasses />} />
           </Route>
+
+          {/* Separate route for ClassView */}
+          <Route path="/teacher/class/:id" element={
+            <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+              <TeacherClassView />
+            </ProtectedRoute>
+          } />
 
           {/* Admin Routes */}
           <Route path="/admin/*" element={

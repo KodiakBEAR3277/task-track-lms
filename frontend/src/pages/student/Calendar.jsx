@@ -140,29 +140,6 @@ function StudentCalendar() {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <StyledDrawer variant="permanent">
-        <List sx={{ marginTop: '2rem' }}>
-          <ListItem 
-            button 
-            onClick={() => navigate('/student/dashboard')}
-          >
-            <ListItemIcon sx={{ color: 'white' }}>
-              <HomeIcon />
-            </ListItemIcon>
-            <ListItemText primary="Home" />
-          </ListItem>
-          <ListItem 
-            button
-            selected
-            onClick={() => navigate('/student/calendar')}
-          >
-            <ListItemIcon sx={{ color: '#FFC600' }}>
-              <CalendarMonthIcon />
-            </ListItemIcon>
-            <ListItemText primary="Calendar" />
-          </ListItem>
-        </List>
-      </StyledDrawer>
 
       {/* Main Content */}
       <MainContent>

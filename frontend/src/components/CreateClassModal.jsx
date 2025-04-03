@@ -1,43 +1,20 @@
+import { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Typography,
-  Button,
-  IconButton,
   TextField,
+  Button,
   Box,
-  styled,
+  Alert
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import { useState } from 'react';
-
-const StyledDialog = styled(Dialog)(({ theme }) => ({
-  '& .MuiDialog-paper': {
-    backgroundColor: '#222222',
-    color: 'white',
-    minWidth: '500px',
-  },
-}));
-
-const StyledDialogTitle = styled(DialogTitle)({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '16px 24px',
-  backgroundColor: '#333333',
-});
+import { styled } from '@mui/material/styles';
 
 const StyledTextField = styled(TextField)({
-  '& .MuiInputBase-root': {
+  '& .MuiOutlinedInput-root': {
     color: 'white',
     backgroundColor: '#333333',
-  },
-  '& .MuiInputLabel-root': {
-    color: '#999999',
-  },
-  '& .MuiOutlinedInput-root': {
     '& fieldset': {
       borderColor: '#444444',
     },
@@ -48,80 +25,96 @@ const StyledTextField = styled(TextField)({
       borderColor: '#FFC600',
     },
   },
-  marginBottom: '16px',
-});
-
-const AddButton = styled(Button)({
-  backgroundColor: '#FFC600',
-  color: 'black',
-  '&:hover': {
-    backgroundColor: '#FFD700',
+  '& .MuiInputLabel-root': {
+    color: '#999999',
   },
 });
 
-const CreateClassModal = ({ open, onClose }) => {
-  const [className, setClassName] = useState('');
-  const [section, setSection] = useState('');
-  const [schedule, setSchedule] = useState('');
+function CreateClassModal({ open, onClose, onSubmit }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    schedule: '',
+    description: ''
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleCreate = () => {
-    // Placeholder for create functionality
-    console.log('Create class clicked', { className, section, schedule });
-    onClose();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setError('');
+      await onSubmit(formData);
+      setFormData({ name: '', schedule: '', description: '' });
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Failed to create class');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <StyledDialog open={open} onClose={onClose} maxWidth="md">
-      <StyledDialogTitle>
-        Create New Class
-        <IconButton
-          onClick={onClose}
-          sx={{ color: 'white', '&:hover': { color: '#FFC600' } }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </StyledDialogTitle>
-      
-      <DialogContent sx={{ padding: '24px', backgroundColor: '#222222' }}>
-        <StyledTextField
-          fullWidth
-          label="Class Name"
-          variant="outlined"
-          margin="normal"
-          value={className}
-          onChange={(e) => setClassName(e.target.value)}
-        />
-        
-        <StyledTextField
-          fullWidth
-          label="Section"
-          variant="outlined"
-          margin="normal"
-          value={section}
-          onChange={(e) => setSection(e.target.value)}
-          InputProps={{
-            sx: { color: 'rgba(255, 255, 255, 0.7)' }
-          }}
-        />
-
-        <StyledTextField
-          fullWidth
-          label="Schedule"
-          variant="outlined"
-          margin="normal"
-          value={schedule}
-          onChange={(e) => setSchedule(e.target.value)}
-          placeholder="e.g., MWF 9:00 AM - 10:30 AM"
-        />
-      </DialogContent>
-
-      <DialogActions sx={{ padding: '16px 24px', backgroundColor: '#222222' }}>
-        <AddButton variant="contained" onClick={handleCreate}>
-          Add Class +
-        </AddButton>
-      </DialogActions>
-    </StyledDialog>
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      PaperProps={{
+        sx: { bgcolor: '#222222', minWidth: '400px' }
+      }}
+    >
+      <DialogTitle sx={{ color: 'white' }}>Create New Class</DialogTitle>
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <StyledTextField
+              label="Class Name"
+              fullWidth
+              required
+              disabled={loading}
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+            <StyledTextField
+              label="Schedule"
+              fullWidth
+              disabled={loading}
+              value={formData.schedule}
+              onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
+            />
+            <StyledTextField
+              label="Description"
+              fullWidth
+              multiline
+              rows={4}
+              disabled={loading}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button 
+            type="submit"
+            variant="contained"
+            disabled={loading}
+            sx={{
+              bgcolor: '#FFC600',
+              color: 'black',
+              '&:hover': { bgcolor: '#FFD700' }
+            }}
+          >
+            {loading ? 'Creating...' : 'Create Class'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
-};
+}
 
 export default CreateClassModal;

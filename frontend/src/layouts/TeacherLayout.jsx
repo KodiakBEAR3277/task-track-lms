@@ -36,8 +36,8 @@ function TeacherLayout() {
   };
 
   const navigationItems = [
-    { text: 'Dashboard', icon: <HomeIcon />, path: '/teacher/dashboard' },
-    { text: 'Classes', icon: <GroupIcon />, path: '/teacher/classes' },
+    { text: 'Dashboard', icon: <HomeIcon />, path: '/teacher/dashboard' }
+    // Removed the Classes item
   ];
 
   const drawer = (
@@ -146,6 +146,7 @@ function TeacherLayout() {
               width: DRAWER_WIDTH,
               bgcolor: '#222222',
               borderRight: 'none',
+              overflow: 'hidden', // Prevent drawer paper from scrolling
             }
           }}
         >
