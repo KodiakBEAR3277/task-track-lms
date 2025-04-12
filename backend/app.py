@@ -20,7 +20,8 @@ CORS(app, resources={
         "origins": ["http://localhost:5173"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
+        "supports_credentials": True,
+        "expose_headers": ["Content-Type", "Authorization"]
     }
 })
 
@@ -88,30 +89,21 @@ def role_required(allowed_roles):
         def decorated(*args, **kwargs):
             token = request.headers.get('Authorization')
             if not token:
-                return jsonify({"error": "No token provided"}), 401
-            
+                return jsonify({'error': 'No token provided'}), 401
             try:
-                # Remove 'Bearer ' prefix if present
-                if token.startswith('Bearer '):
-                    token = token.split(' ')[1]
-                
-                # Decode token
+                token = token.split(' ')[1]  # Remove 'Bearer ' prefix
                 data = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
-                
-                # Check role
-                if data['role'] not in allowed_roles:
-                    return jsonify({"error": "Unauthorized"}), 403
-                
-                # Call the decorated function with user data
-                return f(data, *args, **kwargs)
+                user_data = {
+                    'user_id': data['user_id'],
+                    'role': data['role']
+                }
+                if user_data['role'] not in allowed_roles:
+                    return jsonify({'error': 'Unauthorized access'}), 403
+                return f(user_data, *args, **kwargs)
             except jwt.ExpiredSignatureError:
-                return jsonify({"error": "Token has expired"}), 401
+                return jsonify({'error': 'Token has expired'}), 401
             except jwt.InvalidTokenError:
-                return jsonify({"error": "Invalid token"}), 401
-            except Exception as e:
-                print(f"Auth error: {str(e)}")
-                return jsonify({"error": "Authentication failed"}), 401
-                
+                return jsonify({'error': 'Invalid token'}), 401
         return decorated
     return decorator
 
@@ -341,25 +333,28 @@ def delete_class(current_user, class_id):
     try:
         cur = mysql.connection.cursor()
         
-        # Verify ownership
+        # First verify class ownership
         cur.execute("""
-            SELECT 1 FROM classes 
+            SELECT teacher_id FROM classes 
             WHERE id = %s AND teacher_id = %s
         """, (class_id, current_user['user_id']))
         
-        if not cur.fetchone():
-            return jsonify({"error": "Unauthorized"}), 403
-
-        # Delete class (modules and enrollments will be deleted by CASCADE)
+        result = cur.fetchone()
+        if not result:
+            return jsonify({"error": "Class not found or unauthorized"}), 404
+            
+        # Delete the class (cascading will handle related records)
         cur.execute("DELETE FROM classes WHERE id = %s", (class_id,))
         mysql.connection.commit()
         cur.close()
         
+        print(f"Teacher {current_user['user_id']} deleted class {class_id}")
         return jsonify({"message": "Class deleted successfully"}), 200
-
+        
     except Exception as e:
         print(f"Error deleting class: {str(e)}")
-        return jsonify({"error": "Failed to delete class"}), 500
+        mysql.connection.rollback()
+        return jsonify({"error": f"Failed to delete class: {str(e)}"}), 500
 
 @app.route('/api/teacher/classes/<int:class_id>/modules/<int:module_id>', methods=['GET'])
 @role_required(['teacher', 'admin'])
@@ -909,6 +904,63 @@ def leave_class(current_user, class_id):
         mysql.connection.rollback()
         return jsonify({"error": f"Failed to leave class: {str(e)}"}), 500
 
+# Update join class route
+@app.route('/api/student/classes/join', methods=['POST'])
+@role_required(['student'])
+def join_class(current_user):
+    try:
+        data = request.get_json()
+        class_code = data.get('classCode')
+        
+        if not class_code:
+            return jsonify({"error": "Class code is required"}), 400
+            
+        cur = mysql.connection.cursor()
+        
+        # Check if class exists and is active
+        cur.execute("""
+            SELECT id FROM classes 
+            WHERE code = %s AND status = 'active'
+        """, (class_code,))
+        
+        class_data = cur.fetchone()
+        if not class_data:
+            return jsonify({"error": "Invalid class code or class is inactive"}), 404
+            
+        # Check if already enrolled
+        cur.execute("""
+            SELECT status FROM enrollments 
+            WHERE student_id = %s AND class_id = %s
+        """, (current_user['user_id'], class_data['id']))
+        
+        enrollment = cur.fetchone()
+        if enrollment:
+            if enrollment['status'] == 'enrolled':
+                return jsonify({"error": "Already enrolled in this class"}), 400
+                
+            # Update enrollment if previously dropped
+            cur.execute("""
+                UPDATE enrollments 
+                SET status = 'enrolled', enrolled_at = CURRENT_TIMESTAMP 
+                WHERE student_id = %s AND class_id = %s
+            """, (current_user['user_id'], class_data['id']))
+        else:
+            # Create new enrollment
+            cur.execute("""
+                INSERT INTO enrollments (student_id, class_id, status) 
+                VALUES (%s, %s, 'enrolled')
+            """, (current_user['user_id'], class_data['id']))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({"message": "Successfully joined class"}), 200
+        
+    except Exception as e:
+        print(f"Error joining class: {str(e)}")
+        mysql.connection.rollback()
+        return jsonify({"error": "Failed to join class"}), 500
+
 @app.errorhandler(Exception)
 def handle_error(error):
     response = {
@@ -1035,6 +1087,14 @@ def handle_module_content(current_user, class_id, module_id, content_id):
     elif request.method == 'GET':
         # Add GET method implementation here
         pass
+
+@app.route('/api/student/classes/join', methods=['OPTIONS'])
+def handle_join_options():
+    response = jsonify({})
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+    return response, 200
 
 if __name__ == '__main__':
     print("Starting Flask application...")

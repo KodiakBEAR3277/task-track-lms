@@ -97,10 +97,10 @@ function TeacherDashboard() {
     });
   };
 
-  const handleMenuClick = (event, class_) => {
+  const handleMenuClick = (event, classItem) => {
     event.stopPropagation();
+    setSelectedClass(classItem);  // Set the selected class first
     setMenuAnchor(event.currentTarget);
-    setSelectedClass(class_); // Set the selected class when opening menu
   };
 
   const handleEditClass = async (classData) => {
@@ -118,18 +118,27 @@ function TeacherDashboard() {
       console.error('No class selected for deletion');
       return;
     }
-  
+
     try {
+      setError(null);
+      setLoading(true);
+      console.log('Deleting class:', selectedClass.id);
+      
       await teacherApi.deleteClass(selectedClass.id);
       
-      // Update UI after successful deletion
+      // Update local state to remove the deleted class
       setClasses(prevClasses => prevClasses.filter(c => c.id !== selectedClass.id));
+      
+      // Reset UI state
       setDeleteDialogOpen(false);
       setSelectedClass(null);
       setMenuAnchor(null);
+      
     } catch (err) {
       console.error('Failed to delete class:', err);
-      setError('Failed to delete class. Please try again.');
+      setError(typeof err === 'string' ? err : err.message || 'Failed to delete class');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -149,8 +158,12 @@ function TeacherDashboard() {
   };
 
   const handleDeleteClick = () => {
+    if (!selectedClass) {
+      console.error('No class selected for deletion');
+      return;
+    }
     setDeleteDialogOpen(true);
-    handleMenuClose();
+    setMenuAnchor(null);  // Close the menu
   };
 
   if (loading) {
@@ -191,31 +204,31 @@ function TeacherDashboard() {
       )}
 
       <Grid container spacing={3}>
-        {classes.map((class_) => (
-          <Grid item xs={12} sm={6} md={4} key={class_.id}>
+        {classes.map((classItem) => (
+          <Grid item xs={12} sm={6} md={4} key={classItem.id}>
             <ClassCard 
-              onClick={() => handleClassClick(class_)}
-              onContextMenu={(e) => handleContextMenu(e, class_)}
+              onClick={() => handleClassClick(classItem)}
+              onContextMenu={(e) => handleContextMenu(e, classItem)}
               sx={{ cursor: 'pointer' }}
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <ClassCode>{class_.code}</ClassCode>
+                <ClassCode>{classItem.code}</ClassCode>
                 <IconButton 
                   size="small" 
                   sx={{ color: 'white' }}
-                  onClick={(e) => handleMenuClick(e, class_)}
+                  onClick={(e) => handleMenuClick(e, classItem)}
                 >
                   <MoreVertIcon />
                 </IconButton>
               </Box>
               <Typography variant="h6" sx={{ mb: 1, color: 'white' }}>
-                {class_.name}
+                {classItem.name}
               </Typography>
               <Typography variant="body2" sx={{ color: '#999' }}>
-                {class_.schedule}
+                {classItem.schedule}
               </Typography>
               <Typography variant="body2" sx={{ color: '#999', mt: 2 }}>
-                {class_.students} Students
+                {classItem.students} Students
               </Typography>
             </ClassCard>
           </Grid>
@@ -258,10 +271,7 @@ function TeacherDashboard() {
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setSelectedClass(null); // Clear selection on close
-        }}
+        onClose={() => setDeleteDialogOpen(false)}
         PaperProps={{
           sx: { bgcolor: '#222222', color: 'white' }
         }}
@@ -274,10 +284,7 @@ function TeacherDashboard() {
         </DialogContent>
         <DialogActions>
           <Button 
-            onClick={() => {
-              setDeleteDialogOpen(false);
-              setSelectedClass(null);
-            }}
+            onClick={() => setDeleteDialogOpen(false)}
             sx={{ color: '#999' }}
           >
             Cancel

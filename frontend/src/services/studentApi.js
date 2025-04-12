@@ -32,11 +32,19 @@ const studentApi = {
 
   joinClass: async (classCode) => {
     try {
+      console.log('Attempting to join class with code:', classCode);
       const response = await api.post('/student/classes/join', { classCode });
+      console.log('Join class response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to join class:', error);
-      throw error.response?.data || error.message;
+      if (error.response?.status === 404) {
+        throw new Error('Invalid class code or class is inactive');
+      }
+      if (error.response?.status === 400) {
+        throw new Error(error.response.data.error || 'Already enrolled or cannot join');
+      }
+      throw new Error(error.response?.data?.error || 'Failed to join class');
     }
   },
 

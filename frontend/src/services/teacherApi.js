@@ -187,15 +187,17 @@ const teacherApi = {
     try {
       console.log('Attempting to delete class:', classId);
       const response = await api.delete(`/teacher/classes/${classId}`);
-      console.log('Delete class response:', response);
+      console.log('Delete class response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Delete class error details:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message
-      });
-      throw error.response?.data || error.message;
+      console.error('Delete class error:', error);
+      if (error.response?.status === 404) {
+        throw new Error('Class not found or unauthorized');
+      }
+      if (error.response?.status === 500) {
+        throw new Error('Server error while deleting class');
+      }
+      throw new Error(error.response?.data?.error || 'Failed to delete class');
     }
   }
 };
